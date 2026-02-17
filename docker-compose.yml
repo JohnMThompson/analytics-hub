@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_MORTGAGE_HOST=${DB_MORTGAGE_HOST}
+      - DB_MORTGAGE_USER=${DB_MORTGAGE_USER}
+      - DB_MORTGAGE_PASSWORD=${DB_MORTGAGE_PASSWORD}
+      - DB_MORTGAGE_NAME=${DB_MORTGAGE_NAME}
+      - DB_MORTGAGE_PORT=${DB_MORTGAGE_PORT:-3306}
+      - DB_SWIM_HOST=${DB_SWIM_HOST}
+      - DB_SWIM_USER=${DB_SWIM_USER}
+      - DB_SWIM_PASSWORD=${DB_SWIM_PASSWORD}
+      - DB_SWIM_NAME=${DB_SWIM_NAME}
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+    networks:
+      - ai-analytics
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000
+    depends_on:
+      - backend
+    networks:
+      - ai-analytics
+
+networks:
+  ai-analytics:
+    driver: bridge
