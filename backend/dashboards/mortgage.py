@@ -3,7 +3,7 @@ Mortgage Rates Dashboard Module
 
 Provides current and historical mortgage rate data from the mortgage database.
 """
-from typing import Dict, Any
+from typing import Dict, Any, List
 from fastapi import APIRouter, Depends, Query
 
 # Handle both Docker (flat structure) and local (backend.* imports)
@@ -92,6 +92,15 @@ class MortgageRateDashboard(BaseDashboard):
             return statistics
         except Exception as e:
             return {"error": str(e)}
+
+    def get_custom_routes(self) -> List[Dict[str, Any]]:
+        """Define mortgage dashboard-specific routes."""
+        return [
+            {"path": "current_rate", "endpoint": self.get_current_rate_endpoint},
+            {"path": "historical_rates", "endpoint": self.get_historical_endpoint},
+            {"path": "rate_comparison", "endpoint": self.get_rate_comparison_endpoint},
+            {"path": "rate_statistics", "endpoint": self.get_rate_statistics_endpoint},
+        ]
 
 
 # Global instance for router

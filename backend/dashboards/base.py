@@ -2,7 +2,7 @@
 Base classes and utilities for dashboard modules
 """
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from pydantic import BaseModel
 
 
@@ -43,3 +43,16 @@ class BaseDashboard(ABC):
     def get_metadata(self) -> DashboardMetadata:
         """Get dashboard metadata"""
         return self.metadata
+
+    def get_custom_routes(self) -> List[Dict[str, Any]]:
+        """
+        Return dashboard-specific routes.
+
+        Each route config should include:
+        - path: route suffix under /api/dashboards/{dashboard_id}
+        - endpoint: bound handler function
+        Optional:
+        - methods: list of HTTP methods (defaults to ["GET"])
+        - name: route name suffix (defaults to path with '/' replaced by '_')
+        """
+        return []

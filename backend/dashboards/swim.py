@@ -3,7 +3,7 @@ Swim Tracking Dashboard Module
 
 Provides swim tracking data from the swimming database.
 """
-from typing import Dict, Any
+from typing import Dict, Any, List
 from fastapi import APIRouter, Depends, Query
 
 # Handle both Docker (flat structure) and local (backend.* imports)
@@ -88,6 +88,15 @@ class SwimTrackingDashboard(BaseDashboard):
             return breakdown
         except Exception as e:
             return {"error": str(e)}
+
+    def get_custom_routes(self) -> List[Dict[str, Any]]:
+        """Define swim dashboard-specific routes."""
+        return [
+            {"path": "summary", "endpoint": self.get_summary_endpoint},
+            {"path": "distance_by_date", "endpoint": self.get_distance_by_date_endpoint},
+            {"path": "records", "endpoint": self.get_records_endpoint},
+            {"path": "stroke_breakdown", "endpoint": self.get_stroke_breakdown_endpoint},
+        ]
 
 
 # Global instance for router

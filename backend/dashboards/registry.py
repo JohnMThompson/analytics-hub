@@ -123,65 +123,17 @@ class DashboardRegistry:
             methods=["GET"],
             name=f"{dashboard_id}_data"
         )
-        
-        # Mortgage-specific endpoints
-        if dashboard_id == "mortgage_rates":
+
+        for route in dashboard.get_custom_routes():
+            path = route["path"].lstrip("/")
+            endpoint = route["endpoint"]
+            methods = route.get("methods", ["GET"])
+            route_name = route.get("name", path.replace("/", "_"))
             self.router.add_api_route(
-                f"/{dashboard_id}/current_rate",
-                dashboard.get_current_rate_endpoint,
-                methods=["GET"],
-                name=f"{dashboard_id}_current_rate"
-            )
-            
-            self.router.add_api_route(
-                f"/{dashboard_id}/historical_rates",
-                dashboard.get_historical_endpoint,
-                methods=["GET"],
-                name=f"{dashboard_id}_historical_rates"
-            )
-            
-            self.router.add_api_route(
-                f"/{dashboard_id}/rate_comparison",
-                dashboard.get_rate_comparison_endpoint,
-                methods=["GET"],
-                name=f"{dashboard_id}_rate_comparison"
-            )
-            
-            self.router.add_api_route(
-                f"/{dashboard_id}/rate_statistics",
-                dashboard.get_rate_statistics_endpoint,
-                methods=["GET"],
-                name=f"{dashboard_id}_rate_statistics"
-            )
-        
-        # Swim-specific endpoints
-        elif dashboard_id == "swim_tracking":
-            self.router.add_api_route(
-                f"/{dashboard_id}/summary",
-                dashboard.get_summary_endpoint,
-                methods=["GET"],
-                name=f"{dashboard_id}_summary"
-            )
-            
-            self.router.add_api_route(
-                f"/{dashboard_id}/distance_by_date",
-                dashboard.get_distance_by_date_endpoint,
-                methods=["GET"],
-                name=f"{dashboard_id}_distance_by_date"
-            )
-            
-            self.router.add_api_route(
-                f"/{dashboard_id}/records",
-                dashboard.get_records_endpoint,
-                methods=["GET"],
-                name=f"{dashboard_id}_records"
-            )
-            
-            self.router.add_api_route(
-                f"/{dashboard_id}/stroke_breakdown",
-                dashboard.get_stroke_breakdown_endpoint,
-                methods=["GET"],
-                name=f"{dashboard_id}_stroke_breakdown"
+                f"/{dashboard_id}/{path}",
+                endpoint,
+                methods=methods,
+                name=f"{dashboard_id}_{route_name}"
             )
     
     def get_metadata(self) -> List[Dict]:

@@ -27,6 +27,12 @@ class MockDashboard(BaseDashboard):
     async def get_data(self):
         return {"status": "ok"}
 
+    async def get_extra(self):
+        return {"extra": True}
+
+    def get_custom_routes(self):
+        return [{"path": "extra", "endpoint": self.get_extra}]
+
 
 def test_registry_initialization():
     """Test that registry initializes correctly"""
@@ -86,6 +92,16 @@ def test_database_type_detection():
     
     db_type = registry._get_dashboard_database(SwimTrackingDashboard)
     assert db_type == "swim"
+
+
+def test_register_routes_uses_dashboard_custom_routes():
+    """Test that registry registers custom routes from dashboard definition."""
+    registry = DashboardRegistry()
+    dashboard = MockDashboard({})
+    registry._register_routes(dashboard)
+    paths = {route.path for route in registry.router.routes}
+    assert "/api/dashboards/test_dashboard/data" in paths
+    assert "/api/dashboards/test_dashboard/extra" in paths
 
 
 if __name__ == "__main__":
