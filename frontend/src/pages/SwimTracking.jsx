@@ -82,6 +82,7 @@ export default function SwimTracking() {
       { stroke: 'Butterfly', yards: strokes.butterfly || 0 },
     ]
     : [];
+  const timeframeLabel = 'Last 365 days';
 
   const recentWorkoutColumns = [
     {
@@ -125,7 +126,10 @@ export default function SwimTracking() {
 
         {/* Summary Section */}
         {summary && (
-          <DashboardSection title="1-Year Summary (Last 365 Days)">
+          <DashboardSection
+            title="Performance Overview"
+            subtitle={`${timeframeLabel} summary across workouts, time, and distance.`}
+          >
             <KpiGrid columns={4}>
               <MetricCard
                 label="Total Workouts"
@@ -154,7 +158,10 @@ export default function SwimTracking() {
 
         {/* Daily Distance Chart */}
         {dailyData.length > 0 && (
-          <DashboardSection title="Daily Distance (Yards)">
+          <DashboardSection
+            title="Distance Trend"
+            subtitle={`${timeframeLabel} daily distance (yards).`}
+          >
             <ColumnChartPanel
               data={dailyData}
               xKey="date"
@@ -168,7 +175,10 @@ export default function SwimTracking() {
 
         {/* Stroke Breakdown KPIs */}
         {strokeDistribution.length > 0 && (
-          <DashboardSection title="Distance by Stroke">
+          <DashboardSection
+            title="Stroke Composition Snapshot"
+            subtitle={`${timeframeLabel} total distance by stroke type.`}
+          >
             <KpiGrid columns={4}>
               <Card className="p-6 border-l-4 border-blue-500">
                 <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>Freestyle</p>
@@ -197,7 +207,10 @@ export default function SwimTracking() {
         {/* Bar / Pie / Donut Charts */}
         {strokeDistribution.length > 0 && (
           <>
-            <DashboardSection title="Stroke Distribution (Bar)">
+            <DashboardSection
+              title="Stroke Distribution (Bar)"
+              subtitle="Relative yardage by stroke in a ranked horizontal view."
+            >
               <BarChartPanel
                 data={strokeDistribution}
                 yKey="stroke"
@@ -207,7 +220,10 @@ export default function SwimTracking() {
                 labelFormatter={(stroke) => `Stroke: ${stroke}`}
               />
             </DashboardSection>
-            <DashboardSection title="Stroke Distribution (Pie & Donut)">
+            <DashboardSection
+              title="Stroke Distribution (Pie & Donut)"
+              subtitle="Proportional composition views for the same stroke totals."
+            >
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <PieChartPanel
                   data={strokeDistribution}
@@ -228,7 +244,10 @@ export default function SwimTracking() {
 
         {/* Records Table */}
         {records.length > 0 && (
-          <DashboardSection title="Recent Workouts">
+          <DashboardSection
+            title="Recent Workouts"
+            subtitle="Most recent swim sessions with duration, distance, and notes."
+          >
             <DataTablePanel>
               <DataTable
                 columns={recentWorkoutColumns}
