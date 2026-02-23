@@ -114,6 +114,7 @@ export default function SwimTracking() {
   ];
   const averageYardsPerWorkout = summary?.workout_count ? Math.round((summary.total_yards || 0) / summary.workout_count) : 0;
   const averageMinutesPerWorkout = summary?.workout_count ? Math.round(((summary.total_hours || 0) * 60) / summary.workout_count) : 0;
+  const dailyAxisInterval = Math.max(0, Math.floor(dailyData.length / 8));
 
   return (
     <DashboardLayout
@@ -207,6 +208,8 @@ export default function SwimTracking() {
               xKey="date"
               bars={[{ dataKey: 'total_yards', name: 'Distance (yards)', color: 'var(--chart-4)' }]}
               height={400}
+              xAxisInterval={dailyAxisInterval}
+              yDomain={[0, 'auto']}
               valueFormatter={(value) => `${formatInteger(value)} yards`}
               labelFormatter={(date) => `Date: ${date}`}
             />
@@ -246,40 +249,41 @@ export default function SwimTracking() {
 
         {/* Bar / Pie / Donut Charts */}
         {strokeDistribution.length > 0 && (
-          <>
-            <DashboardSection
-              title="Stroke Distribution (Bar)"
-              subtitle="Relative yardage by stroke in a ranked horizontal view."
-            >
+          <DashboardSection
+            title="Stroke Composition Visuals"
+            subtitle="Ranked and proportional views of total distance by stroke."
+          >
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+              <div className="xl:col-span-2">
               <BarChartPanel
                 data={strokeDistribution}
                 yKey="stroke"
                 barKey="yards"
                 barName="Distance (yards)"
+                yAxisWidth={120}
+                height={420}
                 valueFormatter={(value) => `${formatInteger(value)} yards`}
                 labelFormatter={(stroke) => `Stroke: ${stroke}`}
               />
-            </DashboardSection>
-            <DashboardSection
-              title="Stroke Distribution (Pie & Donut)"
-              subtitle="Proportional composition views for the same stroke totals."
-            >
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-1 gap-6">
                 <PieChartPanel
                   data={strokeDistribution}
                   dataKey="yards"
                   nameKey="stroke"
+                  height={200}
                   valueFormatter={(value) => `${formatInteger(value)} yards`}
                 />
                 <DonutChartPanel
                   data={strokeDistribution}
                   dataKey="yards"
                   nameKey="stroke"
+                  height={200}
                   valueFormatter={(value) => `${formatInteger(value)} yards`}
                 />
               </div>
-            </DashboardSection>
-          </>
+            </div>
+          </DashboardSection>
         )}
 
         {/* Records Table */}

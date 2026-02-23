@@ -87,6 +87,10 @@ export function ColumnChartPanel({
   xKey,
   bars = [],
   height = 360,
+  xAxisInterval = 'preserveStartEnd',
+  yDomain = ['auto', 'auto'],
+  xTickFormatter = undefined,
+  yTickFormatter = undefined,
   emptyMessage = 'No chart data available.',
   valueFormatter = (value) => value,
   labelFormatter = (label) => label,
@@ -100,8 +104,13 @@ export function ColumnChartPanel({
       <ResponsiveContainer width="100%" height={height}>
         <BarChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="#dbe5f0" />
-          <XAxis dataKey={xKey} tick={{ fontSize: 12, fill: '#475569' }} />
-          <YAxis tick={{ fontSize: 12, fill: '#475569' }} />
+          <XAxis
+            dataKey={xKey}
+            interval={xAxisInterval}
+            tick={{ fontSize: 12, fill: '#475569' }}
+            tickFormatter={xTickFormatter}
+          />
+          <YAxis domain={yDomain} tick={{ fontSize: 12, fill: '#475569' }} tickFormatter={yTickFormatter} />
           <Tooltip contentStyle={tooltipStyle} formatter={valueFormatter} labelFormatter={labelFormatter} />
           <Legend />
           {bars.map((bar, idx) => (
@@ -126,6 +135,7 @@ export function BarChartPanel({
   barKey,
   barName,
   height = 360,
+  yAxisWidth = 100,
   emptyMessage = 'No chart data available.',
   valueFormatter = (value) => value,
   labelFormatter = (label) => label,
@@ -140,7 +150,12 @@ export function BarChartPanel({
         <BarChart data={data} layout="vertical">
           <CartesianGrid strokeDasharray="3 3" stroke="#dbe5f0" />
           <XAxis type="number" tick={{ fontSize: 12, fill: '#475569' }} />
-          <YAxis dataKey={yKey || xKey} type="category" tick={{ fontSize: 12, fill: '#475569' }} width={100} />
+          <YAxis
+            dataKey={yKey || xKey}
+            type="category"
+            tick={{ fontSize: 12, fill: '#475569' }}
+            width={yAxisWidth}
+          />
           <Tooltip contentStyle={tooltipStyle} formatter={valueFormatter} labelFormatter={labelFormatter} />
           <Legend />
           <Bar dataKey={barKey} name={barName || barKey} fill="var(--chart-2)" radius={[0, 6, 6, 0]} />
