@@ -3,8 +3,13 @@ Tests for dashboard registry
 """
 import pytest
 from unittest.mock import patch, MagicMock
-from backend.dashboards.registry import DashboardRegistry, get_registry
-from backend.dashboards.base import BaseDashboard, DashboardMetadata
+
+try:
+    from dashboards.registry import DashboardRegistry, get_registry
+    from dashboards.base import BaseDashboard, DashboardMetadata
+except ImportError:
+    from backend.dashboards.registry import DashboardRegistry, get_registry
+    from backend.dashboards.base import BaseDashboard, DashboardMetadata
 
 
 class MockDashboard(BaseDashboard):
@@ -33,7 +38,10 @@ def test_registry_initialization():
 def test_get_registry_singleton():
     """Test that get_registry returns same instance"""
     # This resets the global registry for testing
-    import backend.dashboards.registry as reg_module
+    try:
+        import dashboards.registry as reg_module
+    except ImportError:
+        import backend.dashboards.registry as reg_module
     reg_module._registry = None
     
     registry1 = DashboardRegistry()

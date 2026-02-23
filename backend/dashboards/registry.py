@@ -209,16 +209,3 @@ def get_registry() -> DashboardRegistry:
         _registry = DashboardRegistry()
         _registry.discover_and_register()
     return _registry
-
-
-# Global registry instance
-_registry: DashboardRegistry = None
-
-
-def get_registry() -> DashboardRegistry:
-    """Get or create the global dashboard registry"""
-    global _registry
-    if _registry is None:
-        _registry = DashboardRegistry()
-        _registry.discover_and_register()
-    return _registry

@@ -139,7 +139,7 @@ Frontend runs on http://localhost:3000
 
 ```bash
 # Backend tests
-cd backend && pytest
+cd backend && python3 -m pytest
 
 # Frontend tests
 cd frontend && npm test
