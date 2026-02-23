@@ -6,17 +6,13 @@ from fastapi.middleware.cors import CORSMiddleware
 import logging
 
 # In Docker, we're at /app with a flat structure (dashboards/, config.py, etc.)
-# Locally, we import from backend.* 
-# Try relative imports first, fall back to backend.*
+# Locally, we import from backend.*
+# Try flat imports first, fall back to backend.* namespace imports.
 try:
     from dashboards.registry import get_registry
-    from dashboards.mortgage import router as mortgage_router, set_mortgage_dashboard
-    from dashboards.swim import router as swim_router, set_swim_dashboard
     from config import close_all_connections
 except ImportError:
     from backend.dashboards.registry import get_registry
-    from backend.dashboards.mortgage import router as mortgage_router, set_mortgage_dashboard
-    from backend.dashboards.swim import router as swim_router, set_swim_dashboard
     from backend.config import close_all_connections
 
 logger = logging.getLogger(__name__)
@@ -62,15 +58,7 @@ async def list_dashboards():
 
 # Initialize registry and include routers
 registry = get_registry()
-
-# Set up dashboard instances for routers
-if "mortgage_rates" in registry.dashboards:
-    set_mortgage_dashboard(registry.dashboards["mortgage_rates"])
-    app.include_router(mortgage_router)
-
-if "swim_tracking" in registry.dashboards:
-    set_swim_dashboard(registry.dashboards["swim_tracking"])
-    app.include_router(swim_router)
+app.include_router(registry.router)
 
 
 @app.on_event("startup")
