@@ -142,6 +142,7 @@ GitHub Actions runs CI on every pull request and on pushes to `main`.
 Current CI checks:
 - Backend tests: `cd backend && python3 -m pytest -q`
 - Frontend production build: `cd frontend && npm ci && npm run build`
+- Backend Docker smoke test: build backend image, run container, verify `/api/health`
 
 Planned later (not implemented yet):
 - Automatic deployment from `main` after CI passes
