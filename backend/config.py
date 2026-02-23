@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     debug: bool = True
     log_level: str = "INFO"
     enable_mortgage_dashboard: bool = True
-    enable_swim_dashboard: bool = False
+    enable_swim_dashboard: bool = True
     
     # Mortgage Database (required at runtime, but optional for testing)
     db_mortgage_host: Optional[str] = None
