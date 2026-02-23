@@ -179,8 +179,18 @@ Each dashboard registers its own endpoints under `/api/dashboards/{dashboard-id}
 
 For example, mortgage rates dashboard:
 ```
-GET /api/dashboards/mortgage_rates/current
-GET /api/dashboards/mortgage_rates/historical?days=365
+GET /api/dashboards/mortgage_rates/current_rate
+GET /api/dashboards/mortgage_rates/historical_rates?days=365
+GET /api/dashboards/mortgage_rates/rate_comparison?days=365
+GET /api/dashboards/mortgage_rates/rate_statistics?days=365
+```
+
+Swim tracking dashboard:
+```
+GET /api/dashboards/swim_tracking/summary?days=365
+GET /api/dashboards/swim_tracking/distance_by_date?days=365
+GET /api/dashboards/swim_tracking/records?days=365&limit=50
+GET /api/dashboards/swim_tracking/stroke_breakdown?days=365
 ```
 
 ## Environment Variables
@@ -198,7 +208,8 @@ DB_MORTGAGE_NAME=
 ENVIRONMENT=development
 DEBUG=true
 
-# Frontend (optional for local dev; required for Docker image builds)
+# Frontend API target (optional for local dev via Vite proxy)
+# Docker build uses this value from docker-compose build args.
 VITE_API_URL=http://localhost:8000
 ```
 
@@ -211,7 +222,8 @@ VITE_API_URL=http://localhost:8000
 
 ### Frontend can't reach backend API
 - Verify backend is running on http://localhost:8000
-- Check `VITE_API_URL` in environment/build args
+- For local dev (`npm run dev`), ensure Vite proxy is enabled in `frontend/vite.config.js`
+- For Docker image builds, set `VITE_API_URL` in `.env` before `docker-compose up --build`
 - Check browser console for CORS errors
 
 ### Docker Compose issues
