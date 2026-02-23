@@ -219,6 +219,8 @@ DB_MORTGAGE_NAME=
 ENVIRONMENT=development
 DEBUG=true
 LOG_LEVEL=INFO
+ENABLE_MORTGAGE_DASHBOARD=true
+ENABLE_SWIM_DASHBOARD=false
 
 # Frontend API target (optional for local dev via Vite proxy)
 # Docker build uses this value from docker-compose build args.
@@ -229,6 +231,7 @@ VITE_API_URL=http://localhost:8000
 
 ### Backend can't connect to database
 - Verify database credentials in `.env`
+- Verify dashboard toggle flags (e.g., `ENABLE_SWIM_DASHBOARD`) match intended enabled dashboards
 - Ensure MySQL instance is running
 - Check network connectivity to the database host
 

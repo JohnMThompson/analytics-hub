@@ -2,7 +2,9 @@
 Tests for dashboard registry
 """
 import pytest
-from unittest.mock import patch, MagicMock
+import importlib
+from types import SimpleNamespace
+from unittest.mock import patch
 
 try:
     from dashboards.registry import DashboardRegistry, get_registry
@@ -102,6 +104,62 @@ def test_register_routes_uses_dashboard_custom_routes():
     paths = {route.path for route in registry.router.routes}
     assert "/api/dashboards/test_dashboard/data" in paths
     assert "/api/dashboards/test_dashboard/extra" in paths
+
+
+def test_disabled_dashboard_is_skipped(monkeypatch):
+    """Test that disabled dashboards are not registered."""
+    registry = DashboardRegistry()
+
+    class MortgageRateDashboard(BaseDashboard):
+        metadata = DashboardMetadata(id="mortgage_rates", title="Mortgage", description="Mortgage")
+
+        def __init__(self, db_config):
+            super().__init__(db_config)
+
+        async def get_data(self):
+            return {"ok": True}
+
+    registry_module = importlib.import_module(DashboardRegistry.__module__)
+    fake_module = SimpleNamespace(MortgageRateDashboard=MortgageRateDashboard)
+
+    monkeypatch.setattr(registry_module, "is_database_enabled", lambda _db: False)
+    monkeypatch.setattr(
+        registry_module,
+        "get_db_config",
+        lambda _db: (_ for _ in ()).throw(AssertionError("should not be called"))
+    )
+    monkeypatch.setattr(registry_module.importlib, "import_module", lambda _name: fake_module)
+
+    registry._load_dashboard("mortgage")
+    assert registry.dashboards == {}
+
+
+def test_enabled_dashboard_missing_config_raises(monkeypatch):
+    """Test that enabled dashboards fail fast when required config is missing."""
+    registry = DashboardRegistry()
+
+    class MortgageRateDashboard(BaseDashboard):
+        metadata = DashboardMetadata(id="mortgage_rates", title="Mortgage", description="Mortgage")
+
+        def __init__(self, db_config):
+            super().__init__(db_config)
+
+        async def get_data(self):
+            return {"ok": True}
+
+    registry_module = importlib.import_module(DashboardRegistry.__module__)
+    fake_module = SimpleNamespace(MortgageRateDashboard=MortgageRateDashboard)
+
+    monkeypatch.setattr(registry_module, "is_database_enabled", lambda _db: True)
+    monkeypatch.setattr(
+        registry_module,
+        "get_db_config",
+        lambda _db: (_ for _ in ()).throw(ValueError("missing config"))
+    )
+    monkeypatch.setattr(registry_module.importlib, "import_module", lambda _name: fake_module)
+
+    with pytest.raises(ValueError, match="missing config"):
+        registry._load_dashboard("mortgage")
 
 
 if __name__ == "__main__":
