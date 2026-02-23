@@ -218,6 +218,7 @@ DB_MORTGAGE_NAME=
 # Application settings
 ENVIRONMENT=development
 DEBUG=true
+LOG_LEVEL=INFO
 
 # Frontend API target (optional for local dev via Vite proxy)
 # Docker build uses this value from docker-compose build args.

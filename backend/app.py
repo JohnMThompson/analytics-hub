@@ -7,16 +7,20 @@ from fastapi.responses import JSONResponse
 import logging
 from contextlib import asynccontextmanager
 from sqlalchemy import text
+import time
+import uuid
 
 # In Docker, we're at /app with a flat structure (dashboards/, config.py, etc.)
 # Locally, we import from backend.*
 # Try flat imports first, fall back to backend.* namespace imports.
 try:
     from dashboards.registry import get_registry
-    from config import close_all_connections
+    from config import close_all_connections, configure_logging
 except ImportError:
     from backend.dashboards.registry import get_registry
-    from backend.config import close_all_connections
+    from backend.config import close_all_connections, configure_logging
+
+configure_logging()
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +49,37 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def request_logging_middleware(request, call_next):
+    """Log each request with a request ID and duration."""
+    request_id = request.headers.get("x-request-id") or str(uuid.uuid4())
+    start = time.perf_counter()
+    try:
+        response = await call_next(request)
+    except Exception:
+        duration_ms = round((time.perf_counter() - start) * 1000, 2)
+        logger.exception(
+            "request_failed request_id=%s method=%s path=%s duration_ms=%s",
+            request_id,
+            request.method,
+            request.url.path,
+            duration_ms,
+        )
+        raise
+
+    duration_ms = round((time.perf_counter() - start) * 1000, 2)
+    response.headers["x-request-id"] = request_id
+    logger.info(
+        "request_completed request_id=%s method=%s path=%s status=%s duration_ms=%s",
+        request_id,
+        request.method,
+        request.url.path,
+        response.status_code,
+        duration_ms,
+    )
+    return response
 
 
 @app.get("/api/health")
@@ -79,6 +114,7 @@ async def readiness_check():
                 conn.execute(text("SELECT 1"))
             checks[dashboard_id] = {"ready": True}
         except Exception as error:
+            logger.warning("readiness_check_failed dashboard_id=%s error=%s", dashboard_id, error)
             checks[dashboard_id] = {"ready": False, "error": str(error)}
             all_ready = False
 

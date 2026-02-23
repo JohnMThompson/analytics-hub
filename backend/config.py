@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     # Environment
     environment: str = "development"
     debug: bool = True
+    log_level: str = "INFO"
     
     # Mortgage Database (required at runtime, but optional for testing)
     db_mortgage_host: Optional[str] = None
@@ -43,6 +44,16 @@ settings = Settings()
 
 # Connection pool cache
 _engines: Dict[str, Engine] = {}
+
+
+def configure_logging() -> None:
+    """Configure application-wide logging."""
+    log_level = getattr(logging, settings.log_level.upper(), logging.INFO)
+    logging.basicConfig(
+        level=log_level,
+        format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
+        force=True,
+    )
 
 
 def _validate_required_settings(database: str) -> None:

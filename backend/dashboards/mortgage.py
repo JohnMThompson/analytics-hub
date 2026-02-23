@@ -5,6 +5,9 @@ Provides current and historical mortgage rate data from the mortgage database.
 """
 from typing import Dict, Any, List
 from fastapi import HTTPException
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Handle both Docker (flat structure) and local (backend.* imports)
 try:
@@ -47,10 +50,11 @@ class MortgageRateDashboard(BaseDashboard):
 
     def _raise_internal_error(self, operation: str, error: Exception) -> None:
         """Raise a standardized API error for dashboard failures."""
+        logger.exception("dashboard_error dashboard_id=mortgage_rates operation=%s", operation)
         raise HTTPException(
             status_code=500,
             detail=f"mortgage_rates.{operation} failed: {error}"
-        )
+        ) from error
     
     async def get_data(self) -> Dict[str, Any]:
         """Get all data for this dashboard"""

@@ -25,6 +25,14 @@ async def test_dashboards_endpoint_smoke(client):
     body = response.json()
     assert "dashboards" in body
     assert "total" in body
+    assert "x-request-id" in response.headers
+
+
+@pytest.mark.asyncio
+async def test_request_id_header_is_echoed(client):
+    response = await client.get("/api/health", headers={"x-request-id": "test-request-id"})
+    assert response.status_code == 200
+    assert response.headers.get("x-request-id") == "test-request-id"
 
 
 @pytest.mark.asyncio
