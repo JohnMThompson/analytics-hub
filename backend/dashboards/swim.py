@@ -72,7 +72,7 @@ class SwimTrackingDashboard(BaseDashboard):
         except Exception as e:
             self._raise_internal_error("summary", e)
     
-    async def get_distance_by_date_endpoint(self, days: int = 365) -> Dict[str, Any]:
+    async def get_distance_by_date_endpoint(self, days: int = 365) -> List[Dict[str, Any]]:
         """Get daily distances"""
         try:
             distance_data = await get_distance_by_date(self.engine, days=days)
@@ -80,7 +80,7 @@ class SwimTrackingDashboard(BaseDashboard):
         except Exception as e:
             self._raise_internal_error("distance_by_date", e)
     
-    async def get_records_endpoint(self, days: int = 365, limit: int = 50) -> Dict[str, Any]:
+    async def get_records_endpoint(self, days: int = 365, limit: int = 50) -> List[Dict[str, Any]]:
         """Get personal swimming records"""
         try:
             records = await get_swim_records(self.engine, days=days, limit=limit)

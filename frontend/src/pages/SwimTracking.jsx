@@ -4,10 +4,25 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import apiClient from '../services/api';
-import { LoadingSpinner, ErrorAlert, MetricCard, Card } from '../components/shared';
+import DashboardLayout from '../layouts/DashboardLayout';
+import {
+  LoadingSpinner,
+  ErrorAlert,
+  MetricCard,
+  Card,
+  DashboardSection,
+  KpiGrid,
+  DataTablePanel,
+} from '../components/shared';
+import {
+  BarChartPanel,
+  ColumnChartPanel,
+  DonutChartPanel,
+  PieChartPanel,
+} from '../components/charts';
+import DataTable from '../components/table';
+import { formatDecimal, formatDurationHours, formatInteger } from '../utils/formatters';
 
 export default function SwimTracking() {
   const [summary, setSummary] = useState(null);
@@ -59,144 +74,171 @@ export default function SwimTracking() {
     return date.toLocaleString();
   };
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto py-6 px-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Swim Tracking</h1>
-            <p className="text-gray-600 mt-1">Personal swimming statistics and workout history</p>
-          </div>
-          <Link to="/" className="text-blue-600 hover:text-blue-700">
-            Back to Dashboards
-          </Link>
-        </div>
-      </header>
+  const strokeDistribution = strokes
+    ? [
+      { stroke: 'Freestyle', yards: strokes.freestyle || 0 },
+      { stroke: 'Backstroke', yards: strokes.backstroke || 0 },
+      { stroke: 'Breaststroke', yards: strokes.breaststroke || 0 },
+      { stroke: 'Butterfly', yards: strokes.butterfly || 0 },
+    ]
+    : [];
 
-      <main className="max-w-7xl mx-auto py-6 px-4">
+  const recentWorkoutColumns = [
+    {
+      key: 'start_date_time',
+      header: 'Date & Time',
+      render: (row) => formatDateTime(row.start_date_time),
+    },
+    {
+      key: 'duration',
+      header: 'Duration',
+      render: (row) => formatTime(row.duration),
+    },
+    {
+      key: 'total_distance_yards',
+      header: 'Distance (yards)',
+      tone: 'primary',
+      render: (row) => formatInteger(row.total_distance_yards),
+    },
+    {
+      key: 'location',
+      header: 'Location',
+      render: (row) => row.location || '—',
+    },
+    {
+      key: 'comments',
+      header: 'Comments',
+      className: 'text-xs',
+      render: (row) => row.comments || '—',
+    },
+  ];
+
+  return (
+    <DashboardLayout
+      title="Swim Tracking"
+      subtitle="Personal swimming statistics and workout history"
+      themeClass="theme-swim"
+    >
         {error && (
           <ErrorAlert error={error} onRetry={fetchSwimData} />
         )}
 
         {/* Summary Section */}
         {summary && (
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">1-Year Summary (Last 365 Days)</h2>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <DashboardSection title="1-Year Summary (Last 365 Days)">
+            <KpiGrid columns={4}>
               <MetricCard
                 label="Total Workouts"
-                value={summary.workout_count}
+                value={formatInteger(summary.workout_count)}
                 unit="sessions"
+                variant="emphasis"
               />
               <MetricCard
                 label="Total Distance"
-                value={summary.total_miles}
+                value={formatDecimal(summary.total_miles, 2)}
                 unit="miles"
               />
               <MetricCard
                 label="Total Time"
-                value={summary.total_hours}
-                unit="hours"
+                value={formatDurationHours(summary.total_hours)}
+                state="neutral"
               />
               <MetricCard
                 label="Total Yards"
-                value={summary.total_yards}
+                value={formatInteger(summary.total_yards)}
                 unit="yards"
               />
-            </div>
-          </div>
+            </KpiGrid>
+          </DashboardSection>
         )}
 
         {/* Daily Distance Chart */}
         {dailyData.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Daily Distance (Yards)</h2>
-            <Card className="p-6">
-              <ResponsiveContainer width="100%" height={400}>
-                <BarChart data={dailyData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis
-                    dataKey="date"
-                    tick={{ fontSize: 12 }}
-                    interval={Math.floor(dailyData.length / 10)}
-                  />
-                  <YAxis />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: '#fff', border: '1px solid #ccc' }}
-                    formatter={(value) => `${value} yards`}
-                    labelFormatter={(date) => `Date: ${date}`}
-                  />
-                  <Bar
-                    dataKey="total_yards"
-                    fill="#0284c7"
-                    name="Distance (yards)"
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </Card>
-          </div>
+          <DashboardSection title="Daily Distance (Yards)">
+            <ColumnChartPanel
+              data={dailyData}
+              xKey="date"
+              bars={[{ dataKey: 'total_yards', name: 'Distance (yards)', color: 'var(--chart-4)' }]}
+              height={400}
+              valueFormatter={(value) => `${formatInteger(value)} yards`}
+              labelFormatter={(date) => `Date: ${date}`}
+            />
+          </DashboardSection>
         )}
 
-        {/* Stroke Breakdown */}
-        {strokes && (
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Distance by Stroke</h2>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        {/* Stroke Breakdown KPIs */}
+        {strokeDistribution.length > 0 && (
+          <DashboardSection title="Distance by Stroke">
+            <KpiGrid columns={4}>
               <Card className="p-6 border-l-4 border-blue-500">
-                <p className="text-sm font-medium text-gray-600 mb-2">Freestyle</p>
-                <p className="text-3xl font-bold text-gray-900">{strokes.freestyle}</p>
-                <p className="text-xs text-gray-500 mt-1">yards</p>
+                <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>Freestyle</p>
+                <p className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>{strokes.freestyle}</p>
+                <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>yards</p>
               </Card>
               <Card className="p-6 border-l-4 border-green-500">
-                <p className="text-sm font-medium text-gray-600 mb-2">Backstroke</p>
-                <p className="text-3xl font-bold text-gray-900">{strokes.backstroke}</p>
-                <p className="text-xs text-gray-500 mt-1">yards</p>
+                <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>Backstroke</p>
+                <p className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>{strokes.backstroke}</p>
+                <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>yards</p>
               </Card>
               <Card className="p-6 border-l-4 border-purple-500">
-                <p className="text-sm font-medium text-gray-600 mb-2">Breaststroke</p>
-                <p className="text-3xl font-bold text-gray-900">{strokes.breaststroke}</p>
-                <p className="text-xs text-gray-500 mt-1">yards</p>
+                <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>Breaststroke</p>
+                <p className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>{strokes.breaststroke}</p>
+                <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>yards</p>
               </Card>
               <Card className="p-6 border-l-4 border-orange-500">
-                <p className="text-sm font-medium text-gray-600 mb-2">Butterfly</p>
-                <p className="text-3xl font-bold text-gray-900">{strokes.butterfly}</p>
-                <p className="text-xs text-gray-500 mt-1">yards</p>
+                <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>Butterfly</p>
+                <p className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>{strokes.butterfly}</p>
+                <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>yards</p>
               </Card>
-            </div>
-          </div>
+            </KpiGrid>
+          </DashboardSection>
+        )}
+
+        {/* Bar / Pie / Donut Charts */}
+        {strokeDistribution.length > 0 && (
+          <>
+            <DashboardSection title="Stroke Distribution (Bar)">
+              <BarChartPanel
+                data={strokeDistribution}
+                yKey="stroke"
+                barKey="yards"
+                barName="Distance (yards)"
+                valueFormatter={(value) => `${formatInteger(value)} yards`}
+                labelFormatter={(stroke) => `Stroke: ${stroke}`}
+              />
+            </DashboardSection>
+            <DashboardSection title="Stroke Distribution (Pie & Donut)">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <PieChartPanel
+                  data={strokeDistribution}
+                  dataKey="yards"
+                  nameKey="stroke"
+                  valueFormatter={(value) => `${formatInteger(value)} yards`}
+                />
+                <DonutChartPanel
+                  data={strokeDistribution}
+                  dataKey="yards"
+                  nameKey="stroke"
+                  valueFormatter={(value) => `${formatInteger(value)} yards`}
+                />
+              </div>
+            </DashboardSection>
+          </>
         )}
 
         {/* Records Table */}
         {records.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Recent Workouts</h2>
-            <Card className="p-6 overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-3 px-4 font-semibold text-gray-900">Date & Time</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-900">Duration</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-900">Distance (yards)</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-900">Location</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-900">Comments</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {records.map((record, idx) => (
-                    <tr key={record.id} className={idx % 2 === 0 ? 'bg-gray-50' : ''}>
-                      <td className="py-3 px-4 text-gray-600">{formatDateTime(record.start_date_time)}</td>
-                      <td className="py-3 px-4 text-gray-600">{formatTime(record.duration)}</td>
-                      <td className="py-3 px-4 font-semibold text-gray-900">{record.total_distance_yards}</td>
-                      <td className="py-3 px-4 text-gray-600">{record.location || '—'}</td>
-                      <td className="py-3 px-4 text-gray-600 text-xs">{record.comments || '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </Card>
-          </div>
+          <DashboardSection title="Recent Workouts">
+            <DataTablePanel>
+              <DataTable
+                columns={recentWorkoutColumns}
+                rows={records}
+                rowKey="id"
+                emptyMessage="No workouts found."
+              />
+            </DataTablePanel>
+          </DashboardSection>
         )}
-      </main>
-    </div>
+    </DashboardLayout>
   );
 }

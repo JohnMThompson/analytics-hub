@@ -35,42 +35,63 @@ export default function Home() {
 
   if (loading) return <LoadingSpinner />;
 
+  const getThemePreview = (dashboardId) => {
+    if (dashboardId === 'mortgage_rates') {
+      return { label: 'Mortgage Theme', accent: 'bg-cyan-100 text-cyan-800' };
+    }
+    if (dashboardId === 'swim_tracking') {
+      return { label: 'Swim Theme', accent: 'bg-blue-100 text-blue-800' };
+    }
+    return { label: 'Default Theme', accent: 'bg-slate-100 text-slate-700' };
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto py-6 px-4">
-          <h1 className="text-3xl font-bold text-gray-900">Analytics Dashboard</h1>
-          <p className="text-gray-600 mt-2">Choose a dashboard to view</p>
+    <div className="dashboard-shell theme-default">
+      <header className="dashboard-header">
+        <div className="dashboard-header-inner">
+          <div>
+            <h1 className="dashboard-title">Analytics Dashboard</h1>
+            <p className="dashboard-subtitle">Choose a dashboard to view</p>
+          </div>
+          <span className="dashboard-badge">Reporting Package</span>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto py-6 px-4">
+      <main className="dashboard-content">
         {error && (
           <ErrorAlert error={error} onRetry={fetchDashboards} />
         )}
 
         {dashboards.length === 0 ? (
-          <div className="bg-white rounded-lg shadow p-6 text-center">
-            <p className="text-gray-600">No dashboards available</p>
+          <div className="dashboard-panel p-6 text-center">
+            <p style={{ color: 'var(--text-secondary)' }}>No dashboards available</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {dashboards.map((dashboard) => (
-              <Link
-                key={dashboard.id}
-                to={`/dashboard/${dashboard.id}`}
-                className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow p-6 cursor-pointer"
-              >
-                <h2 className="text-xl font-bold text-gray-900 mb-2">
-                  {dashboard.title}
-                </h2>
-                <p className="text-gray-600 text-sm mb-4">
-                  {dashboard.description}
-                </p>
-                <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded">
-                  View Dashboard
-                </span>
-              </Link>
+              (() => {
+                const themePreview = getThemePreview(dashboard.id);
+                return (
+                  <Link
+                    key={dashboard.id}
+                    to={`/dashboard/${dashboard.id}`}
+                    className="dashboard-panel p-6 cursor-pointer transition-transform duration-200 hover:-translate-y-1"
+                  >
+                    <div className="mb-3 flex items-center justify-between gap-2">
+                      <h2 className="text-xl font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+                        {dashboard.title}
+                      </h2>
+                      <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${themePreview.accent}`}>
+                        {themePreview.label}
+                      </span>
+                    </div>
+                    <p className="text-sm mb-5" style={{ color: 'var(--text-secondary)' }}>
+                      {dashboard.description}
+                    </p>
+                    <span className="dashboard-badge">View Dashboard</span>
+                  </Link>
+                );
+              })()
             ))}
           </div>
         )}
