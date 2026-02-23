@@ -164,6 +164,15 @@
     box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
   }
 
+  .theme-swim .swim-kpi {
+    border-color: #bfd4ec;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  }
+
+  .theme-swim .swim-kpi:hover {
+    border-color: #9fbadd;
+  }
+
   .dashboard-badge {
     @apply inline-flex items-center px-3 py-1 text-xs font-medium;
     border-radius: var(--radius-badge);

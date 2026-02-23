@@ -9,7 +9,6 @@ import DashboardLayout from '../layouts/DashboardLayout';
 import {
   LoadingSpinner,
   ErrorAlert,
-  MetricCard,
   Card,
   DashboardSection,
   KpiGrid,
@@ -18,8 +17,6 @@ import {
 import {
   BarChartPanel,
   ColumnChartPanel,
-  DonutChartPanel,
-  PieChartPanel,
 } from '../components/charts';
 import DataTable from '../components/table';
 import { formatDecimal, formatDurationHours, formatInteger } from '../utils/formatters';
@@ -82,6 +79,34 @@ export default function SwimTracking() {
       { stroke: 'Butterfly', yards: strokes.butterfly || 0 },
     ]
     : [];
+  const filledDailyData = (() => {
+    if (!Array.isArray(dailyData) || dailyData.length === 0) return [];
+
+    const sorted = [...dailyData]
+      .filter((entry) => entry?.date)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    if (sorted.length === 0) return [];
+
+    const byDate = new Map(sorted.map((entry) => [entry.date, entry]));
+    const start = new Date(`${sorted[0].date}T00:00:00`);
+    const end = new Date(`${sorted[sorted.length - 1].date}T00:00:00`);
+
+    const expanded = [];
+    const cursor = new Date(start);
+    while (cursor <= end) {
+      const key = cursor.toISOString().slice(0, 10);
+      const existing = byDate.get(key);
+      expanded.push({
+        date: key,
+        total_yards: existing?.total_yards ?? 0,
+        workout_count: existing?.workout_count ?? 0,
+      });
+      cursor.setDate(cursor.getDate() + 1);
+    }
+
+    return expanded;
+  })();
+  const timeframeLabel = 'Last 365 days';
 
   const recentWorkoutColumns = [
     {
@@ -92,12 +117,14 @@ export default function SwimTracking() {
     {
       key: 'duration',
       header: 'Duration',
+      align: 'right',
       render: (row) => formatTime(row.duration),
     },
     {
       key: 'total_distance_yards',
       header: 'Distance (yards)',
       tone: 'primary',
+      align: 'right',
       render: (row) => formatInteger(row.total_distance_yards),
     },
     {
@@ -108,10 +135,14 @@ export default function SwimTracking() {
     {
       key: 'comments',
       header: 'Comments',
-      className: 'text-xs',
+      tone: 'muted',
+      className: 'text-xs max-w-[260px] truncate',
       render: (row) => row.comments || '—',
     },
   ];
+  const averageYardsPerWorkout = summary?.workout_count ? Math.round((summary.total_yards || 0) / summary.workout_count) : 0;
+  const averageMinutesPerWorkout = summary?.workout_count ? Math.round(((summary.total_hours || 0) * 60) / summary.workout_count) : 0;
+  const dailyAxisInterval = Math.max(0, Math.floor(filledDailyData.length / 8));
 
   return (
     <DashboardLayout
@@ -125,41 +156,88 @@ export default function SwimTracking() {
 
         {/* Summary Section */}
         {summary && (
-          <DashboardSection title="1-Year Summary (Last 365 Days)">
+          <DashboardSection
+            title="Performance Overview"
+            subtitle={`${timeframeLabel} summary across workouts, time, and distance.`}
+          >
             <KpiGrid columns={4}>
-              <MetricCard
-                label="Total Workouts"
-                value={formatInteger(summary.workout_count)}
-                unit="sessions"
-                variant="emphasis"
-              />
-              <MetricCard
-                label="Total Distance"
-                value={formatDecimal(summary.total_miles, 2)}
-                unit="miles"
-              />
-              <MetricCard
-                label="Total Time"
-                value={formatDurationHours(summary.total_hours)}
-                state="neutral"
-              />
-              <MetricCard
-                label="Total Yards"
-                value={formatInteger(summary.total_yards)}
-                unit="yards"
-              />
+              <Card className="kpi-focus-card swim-kpi p-0">
+                <div className="min-h-[220px] flex flex-col text-center">
+                  <div className="px-5 pt-4 pb-3 border-b" style={{ borderColor: 'var(--border-soft)' }}>
+                    <p className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>Total Workouts</p>
+                  </div>
+                  <div className="flex-1 flex flex-col items-center justify-center px-6 py-5">
+                    <p className="text-5xl font-bold leading-none" style={{ color: 'var(--text-primary)' }}>
+                      {formatInteger(summary.workout_count)}
+                    </p>
+                    <p className="mt-2 text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>sessions</p>
+                    <p className="mt-5 text-xs" style={{ color: 'var(--text-muted)' }}>Avg duration: {averageMinutesPerWorkout} min</p>
+                  </div>
+                </div>
+              </Card>
+              <Card className="kpi-focus-card swim-kpi p-0">
+                <div className="min-h-[220px] flex flex-col text-center">
+                  <div className="px-5 pt-4 pb-3 border-b" style={{ borderColor: 'var(--border-soft)' }}>
+                    <p className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>Total Distance</p>
+                  </div>
+                  <div className="flex-1 flex flex-col items-center justify-center px-6 py-5">
+                    <p className="text-5xl font-bold leading-none" style={{ color: 'var(--text-primary)' }}>
+                      {formatDecimal(summary.total_miles, 2)}
+                    </p>
+                    <p className="mt-2 text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>miles</p>
+                    <p className="mt-5 text-xs" style={{ color: 'var(--text-muted)' }}>
+                      Avg per workout: {formatInteger(averageYardsPerWorkout)} yds
+                    </p>
+                  </div>
+                </div>
+              </Card>
+              <Card className="kpi-focus-card swim-kpi p-0">
+                <div className="min-h-[220px] flex flex-col text-center">
+                  <div className="px-5 pt-4 pb-3 border-b" style={{ borderColor: 'var(--border-soft)' }}>
+                    <p className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>Total Time</p>
+                  </div>
+                  <div className="flex-1 flex flex-col items-center justify-center px-6 py-5">
+                    <p className="text-5xl font-bold leading-none" style={{ color: 'var(--text-primary)' }}>
+                      {formatDurationHours(summary.total_hours)}
+                    </p>
+                    <p className="mt-2 text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>in pool</p>
+                    <p className="mt-5 text-xs" style={{ color: 'var(--text-muted)' }}>
+                      Avg per workout: {averageMinutesPerWorkout} min
+                    </p>
+                  </div>
+                </div>
+              </Card>
+              <Card className="kpi-focus-card swim-kpi p-0">
+                <div className="min-h-[220px] flex flex-col text-center">
+                  <div className="px-5 pt-4 pb-3 border-b" style={{ borderColor: 'var(--border-soft)' }}>
+                    <p className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>Total Yards</p>
+                  </div>
+                  <div className="flex-1 flex flex-col items-center justify-center px-6 py-5">
+                    <p className="text-5xl font-bold leading-none" style={{ color: 'var(--text-primary)' }}>
+                      {formatInteger(summary.total_yards)}
+                    </p>
+                    <p className="mt-2 text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>yards</p>
+                    <p className="mt-5 text-xs" style={{ color: 'var(--text-muted)' }}>Last 365 days</p>
+                  </div>
+                </div>
+              </Card>
             </KpiGrid>
           </DashboardSection>
         )}
 
         {/* Daily Distance Chart */}
-        {dailyData.length > 0 && (
-          <DashboardSection title="Daily Distance (Yards)">
+        {filledDailyData.length > 0 && (
+          <DashboardSection
+            title="Distance Trend"
+            subtitle={`${timeframeLabel} daily distance (yards).`}
+          >
             <ColumnChartPanel
-              data={dailyData}
+              data={filledDailyData}
               xKey="date"
               bars={[{ dataKey: 'total_yards', name: 'Distance (yards)', color: 'var(--chart-4)' }]}
               height={400}
+              xAxisInterval={dailyAxisInterval}
+              yDomain={[0, 'auto']}
               valueFormatter={(value) => `${formatInteger(value)} yards`}
               labelFormatter={(date) => `Date: ${date}`}
             />
@@ -168,26 +246,29 @@ export default function SwimTracking() {
 
         {/* Stroke Breakdown KPIs */}
         {strokeDistribution.length > 0 && (
-          <DashboardSection title="Distance by Stroke">
+          <DashboardSection
+            title="Stroke Composition Snapshot"
+            subtitle={`${timeframeLabel} total distance by stroke type.`}
+          >
             <KpiGrid columns={4}>
-              <Card className="p-6 border-l-4 border-blue-500">
+              <Card className="kpi-focus-card swim-kpi p-6 text-center">
                 <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>Freestyle</p>
-                <p className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>{strokes.freestyle}</p>
+                <p className="text-4xl font-bold" style={{ color: 'var(--text-primary)' }}>{formatInteger(strokes.freestyle)}</p>
                 <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>yards</p>
               </Card>
-              <Card className="p-6 border-l-4 border-green-500">
+              <Card className="kpi-focus-card swim-kpi p-6 text-center">
                 <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>Backstroke</p>
-                <p className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>{strokes.backstroke}</p>
+                <p className="text-4xl font-bold" style={{ color: 'var(--text-primary)' }}>{formatInteger(strokes.backstroke)}</p>
                 <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>yards</p>
               </Card>
-              <Card className="p-6 border-l-4 border-purple-500">
+              <Card className="kpi-focus-card swim-kpi p-6 text-center">
                 <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>Breaststroke</p>
-                <p className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>{strokes.breaststroke}</p>
+                <p className="text-4xl font-bold" style={{ color: 'var(--text-primary)' }}>{formatInteger(strokes.breaststroke)}</p>
                 <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>yards</p>
               </Card>
-              <Card className="p-6 border-l-4 border-orange-500">
+              <Card className="kpi-focus-card swim-kpi p-6 text-center">
                 <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>Butterfly</p>
-                <p className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>{strokes.butterfly}</p>
+                <p className="text-4xl font-bold" style={{ color: 'var(--text-primary)' }}>{formatInteger(strokes.butterfly)}</p>
                 <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>yards</p>
               </Card>
             </KpiGrid>
@@ -196,39 +277,33 @@ export default function SwimTracking() {
 
         {/* Bar / Pie / Donut Charts */}
         {strokeDistribution.length > 0 && (
-          <>
-            <DashboardSection title="Stroke Distribution (Bar)">
+          <DashboardSection
+            title="Stroke Composition Visuals"
+            subtitle="Ranked and proportional views of total distance by stroke."
+          >
+            <div className="grid grid-cols-1 gap-6">
+              <div>
               <BarChartPanel
                 data={strokeDistribution}
                 yKey="stroke"
                 barKey="yards"
                 barName="Distance (yards)"
+                yAxisWidth={120}
+                height={420}
                 valueFormatter={(value) => `${formatInteger(value)} yards`}
                 labelFormatter={(stroke) => `Stroke: ${stroke}`}
               />
-            </DashboardSection>
-            <DashboardSection title="Stroke Distribution (Pie & Donut)">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <PieChartPanel
-                  data={strokeDistribution}
-                  dataKey="yards"
-                  nameKey="stroke"
-                  valueFormatter={(value) => `${formatInteger(value)} yards`}
-                />
-                <DonutChartPanel
-                  data={strokeDistribution}
-                  dataKey="yards"
-                  nameKey="stroke"
-                  valueFormatter={(value) => `${formatInteger(value)} yards`}
-                />
               </div>
-            </DashboardSection>
-          </>
+            </div>
+          </DashboardSection>
         )}
 
         {/* Records Table */}
         {records.length > 0 && (
-          <DashboardSection title="Recent Workouts">
+          <DashboardSection
+            title="Recent Workouts"
+            subtitle="Most recent swim sessions with duration, distance, and notes."
+          >
             <DataTablePanel>
               <DataTable
                 columns={recentWorkoutColumns}
