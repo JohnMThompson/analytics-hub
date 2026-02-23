@@ -11,10 +11,10 @@ from fastapi import APIRouter
 # Handle both Docker (flat structure) and local (backend.* imports)
 try:
     from dashboards.base import BaseDashboard
-    from config import get_db_config
+    from config import get_db_config, is_database_enabled
 except ImportError:
     from backend.dashboards.base import BaseDashboard
-    from backend.config import get_db_config
+    from backend.config import get_db_config, is_database_enabled
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +47,9 @@ class DashboardRegistry:
         for module_name in dashboard_files:
             try:
                 self._load_dashboard(module_name)
+            except ValueError as e:
+                logger.error(f"Dashboard configuration error for {module_name}: {e}")
+                raise
             except Exception as e:
                 logger.error(f"Failed to load dashboard {module_name}: {e}")
     
@@ -71,13 +74,13 @@ class DashboardRegistry:
                 
                 # Determine which database this dashboard uses
                 db_type = self._get_dashboard_database(obj)
+
+                if not is_database_enabled(db_type):
+                    logger.info(f"Skipping disabled dashboard: {name} (database={db_type})")
+                    continue
                 
                 # Get database config
-                try:
-                    db_config = get_db_config(db_type)
-                except ValueError as e:
-                    logger.warning(f"Database not configured for {name}: {e}")
-                    return
+                db_config = get_db_config(db_type)
                 
                 # Instantiate the dashboard
                 instance = obj(db_config)
@@ -123,65 +126,17 @@ class DashboardRegistry:
             methods=["GET"],
             name=f"{dashboard_id}_data"
         )
-        
-        # Mortgage-specific endpoints
-        if dashboard_id == "mortgage_rates":
+
+        for route in dashboard.get_custom_routes():
+            path = route["path"].lstrip("/")
+            endpoint = route["endpoint"]
+            methods = route.get("methods", ["GET"])
+            route_name = route.get("name", path.replace("/", "_"))
             self.router.add_api_route(
-                f"/{dashboard_id}/current_rate",
-                dashboard.get_current_rate_endpoint,
-                methods=["GET"],
-                name=f"{dashboard_id}_current_rate"
-            )
-            
-            self.router.add_api_route(
-                f"/{dashboard_id}/historical_rates",
-                dashboard.get_historical_endpoint,
-                methods=["GET"],
-                name=f"{dashboard_id}_historical_rates"
-            )
-            
-            self.router.add_api_route(
-                f"/{dashboard_id}/rate_comparison",
-                dashboard.get_rate_comparison_endpoint,
-                methods=["GET"],
-                name=f"{dashboard_id}_rate_comparison"
-            )
-            
-            self.router.add_api_route(
-                f"/{dashboard_id}/rate_statistics",
-                dashboard.get_rate_statistics_endpoint,
-                methods=["GET"],
-                name=f"{dashboard_id}_rate_statistics"
-            )
-        
-        # Swim-specific endpoints
-        elif dashboard_id == "swim_tracking":
-            self.router.add_api_route(
-                f"/{dashboard_id}/summary",
-                dashboard.get_summary_endpoint,
-                methods=["GET"],
-                name=f"{dashboard_id}_summary"
-            )
-            
-            self.router.add_api_route(
-                f"/{dashboard_id}/distance_by_date",
-                dashboard.get_distance_by_date_endpoint,
-                methods=["GET"],
-                name=f"{dashboard_id}_distance_by_date"
-            )
-            
-            self.router.add_api_route(
-                f"/{dashboard_id}/records",
-                dashboard.get_records_endpoint,
-                methods=["GET"],
-                name=f"{dashboard_id}_records"
-            )
-            
-            self.router.add_api_route(
-                f"/{dashboard_id}/stroke_breakdown",
-                dashboard.get_stroke_breakdown_endpoint,
-                methods=["GET"],
-                name=f"{dashboard_id}_stroke_breakdown"
+                f"/{dashboard_id}/{path}",
+                endpoint,
+                methods=methods,
+                name=f"{dashboard_id}_{route_name}"
             )
     
     def get_metadata(self) -> List[Dict]:
@@ -196,19 +151,6 @@ class DashboardRegistry:
             }
             for dashboard in self.dashboards.values()
         ]
-
-
-# Global registry instance
-_registry: DashboardRegistry = None
-
-
-def get_registry() -> DashboardRegistry:
-    """Get or create the global dashboard registry"""
-    global _registry
-    if _registry is None:
-        _registry = DashboardRegistry()
-        _registry.discover_and_register()
-    return _registry
 
 
 # Global registry instance

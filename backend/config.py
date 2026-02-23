@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     # Environment
     environment: str = "development"
     debug: bool = True
+    log_level: str = "INFO"
+    enable_mortgage_dashboard: bool = True
+    enable_swim_dashboard: bool = False
     
     # Mortgage Database (required at runtime, but optional for testing)
     db_mortgage_host: Optional[str] = None
@@ -32,7 +35,7 @@ class Settings(BaseSettings):
     db_swim_port: int = 3306
     
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=(".env", "../.env"),
         case_sensitive=False,
         extra="ignore"  # Allow extra fields from .env
     )
@@ -43,6 +46,49 @@ settings = Settings()
 
 # Connection pool cache
 _engines: Dict[str, Engine] = {}
+
+
+def configure_logging() -> None:
+    """Configure application-wide logging."""
+    log_level = getattr(logging, settings.log_level.upper(), logging.INFO)
+    logging.basicConfig(
+        level=log_level,
+        format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
+        force=True,
+    )
+
+
+def _validate_required_settings(database: str) -> None:
+    """Validate required DB settings for a given database key."""
+    if database == "mortgage":
+        required = {
+            "DB_MORTGAGE_HOST": settings.db_mortgage_host,
+            "DB_MORTGAGE_USER": settings.db_mortgage_user,
+            "DB_MORTGAGE_NAME": settings.db_mortgage_name,
+        }
+    elif database == "swim":
+        required = {
+            "DB_SWIM_HOST": settings.db_swim_host,
+            "DB_SWIM_USER": settings.db_swim_user,
+            "DB_SWIM_NAME": settings.db_swim_name,
+        }
+    else:
+        raise ValueError(f"Unknown database: {database}")
+
+    missing = [name for name, value in required.items() if not value]
+    if missing:
+        raise ValueError(
+            f"{database} database credentials not configured: missing {', '.join(missing)}"
+        )
+
+
+def is_database_enabled(database: str) -> bool:
+    """
+    Check whether a dashboard/database integration is enabled.
+    Unknown dashboard types default to enabled.
+    """
+    attr = f"enable_{database}_dashboard"
+    return bool(getattr(settings, attr, True))
 
 
 def get_db_connection_string(database: str) -> str:
@@ -56,6 +102,7 @@ def get_db_connection_string(database: str) -> str:
         SQLAlchemy-compatible connection string
     """
     if database == "mortgage":
+        _validate_required_settings("mortgage")
         return (
             f"mysql+pymysql://{settings.db_mortgage_user}:"
             f"{settings.db_mortgage_password}@"
@@ -63,8 +110,7 @@ def get_db_connection_string(database: str) -> str:
             f"{settings.db_mortgage_name}"
         )
     elif database == "swim":
-        if not all([settings.db_swim_host, settings.db_swim_user, settings.db_swim_name]):
-            raise ValueError("Swim database credentials not configured")
+        _validate_required_settings("swim")
         return (
             f"mysql+pymysql://{settings.db_swim_user}:"
             f"{settings.db_swim_password}@"
@@ -111,6 +157,7 @@ def get_db_config(database: str) -> dict:
         Dictionary with connection details
     """
     if database == "mortgage":
+        _validate_required_settings("mortgage")
         return {
             "host": settings.db_mortgage_host,
             "user": settings.db_mortgage_user,
@@ -119,6 +166,7 @@ def get_db_config(database: str) -> dict:
             "port": settings.db_mortgage_port
         }
     elif database == "swim":
+        _validate_required_settings("swim")
         return {
             "host": settings.db_swim_host,
             "user": settings.db_swim_user,

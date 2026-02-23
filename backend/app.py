@@ -3,28 +3,42 @@ FastAPI application initialization and dashboard registration
 """
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 import logging
+from contextlib import asynccontextmanager
+from sqlalchemy import text
+import time
+import uuid
 
 # In Docker, we're at /app with a flat structure (dashboards/, config.py, etc.)
-# Locally, we import from backend.* 
-# Try relative imports first, fall back to backend.*
+# Locally, we import from backend.*
+# Try flat imports first, fall back to backend.* namespace imports.
 try:
     from dashboards.registry import get_registry
-    from dashboards.mortgage import router as mortgage_router, set_mortgage_dashboard
-    from dashboards.swim import router as swim_router, set_swim_dashboard
-    from config import close_all_connections
+    from config import close_all_connections, configure_logging
 except ImportError:
     from backend.dashboards.registry import get_registry
-    from backend.dashboards.mortgage import router as mortgage_router, set_mortgage_dashboard
-    from backend.dashboards.swim import router as swim_router, set_swim_dashboard
-    from backend.config import close_all_connections
+    from backend.config import close_all_connections, configure_logging
+
+configure_logging()
 
 logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    """Application lifecycle management."""
+    logger.info(f"Started with {len(registry.dashboards)} dashboards")
+    yield
+    close_all_connections()
+    logger.info("Closed all database connections")
+
 
 app = FastAPI(
     title="AI Analytics API",
     description="Modular analytics dashboard platform",
-    version="0.1.0"
+    version="0.1.0",
+    lifespan=lifespan
 )
 
 # Configure CORS for frontend communication
@@ -37,6 +51,37 @@ app.add_middleware(
 )
 
 
+@app.middleware("http")
+async def request_logging_middleware(request, call_next):
+    """Log each request with a request ID and duration."""
+    request_id = request.headers.get("x-request-id") or str(uuid.uuid4())
+    start = time.perf_counter()
+    try:
+        response = await call_next(request)
+    except Exception:
+        duration_ms = round((time.perf_counter() - start) * 1000, 2)
+        logger.exception(
+            "request_failed request_id=%s method=%s path=%s duration_ms=%s",
+            request_id,
+            request.method,
+            request.url.path,
+            duration_ms,
+        )
+        raise
+
+    duration_ms = round((time.perf_counter() - start) * 1000, 2)
+    response.headers["x-request-id"] = request_id
+    logger.info(
+        "request_completed request_id=%s method=%s path=%s status=%s duration_ms=%s",
+        request_id,
+        request.method,
+        request.url.path,
+        response.status_code,
+        duration_ms,
+    )
+    return response
+
+
 @app.get("/api/health")
 async def health_check():
     """Health check endpoint"""
@@ -46,6 +91,41 @@ async def health_check():
         "version": "0.1.0",
         "dashboards_count": len(registry.dashboards)
     }
+
+
+@app.get("/api/ready")
+async def readiness_check():
+    """Readiness check endpoint including per-dashboard DB connectivity."""
+    checks = {}
+    all_ready = True
+
+    for dashboard_id, dashboard in registry.dashboards.items():
+        engine = getattr(dashboard, "engine", None)
+        if engine is None:
+            checks[dashboard_id] = {
+                "ready": False,
+                "error": "No database engine configured"
+            }
+            all_ready = False
+            continue
+
+        try:
+            with engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+            checks[dashboard_id] = {"ready": True}
+        except Exception as error:
+            logger.warning("readiness_check_failed dashboard_id=%s error=%s", dashboard_id, error)
+            checks[dashboard_id] = {"ready": False, "error": str(error)}
+            all_ready = False
+
+    payload = {
+        "status": "ready" if all_ready else "not_ready",
+        "dashboards_count": len(registry.dashboards),
+        "checks": checks
+    }
+    if all_ready:
+        return payload
+    return JSONResponse(status_code=503, content=payload)
 
 
 @app.get("/api/dashboards")
@@ -62,28 +142,7 @@ async def list_dashboards():
 
 # Initialize registry and include routers
 registry = get_registry()
-
-# Set up dashboard instances for routers
-if "mortgage_rates" in registry.dashboards:
-    set_mortgage_dashboard(registry.dashboards["mortgage_rates"])
-    app.include_router(mortgage_router)
-
-if "swim_tracking" in registry.dashboards:
-    set_swim_dashboard(registry.dashboards["swim_tracking"])
-    app.include_router(swim_router)
-
-
-@app.on_event("startup")
-async def startup_event():
-    """Initialize database connections on startup"""
-    logger.info(f"Started with {len(registry.dashboards)} dashboards")
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Clean up connections on shutdown"""
-    close_all_connections()
-    logger.info("Closed all database connections")
+app.include_router(registry.router)
 
 
 if __name__ == "__main__":

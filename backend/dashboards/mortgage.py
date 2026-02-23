@@ -3,8 +3,11 @@ Mortgage Rates Dashboard Module
 
 Provides current and historical mortgage rate data from the mortgage database.
 """
-from typing import Dict, Any
-from fastapi import APIRouter, Depends, Query
+from typing import Dict, Any, List
+from fastapi import HTTPException
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Handle both Docker (flat structure) and local (backend.* imports)
 try:
@@ -26,10 +29,6 @@ except ImportError:
         get_rate_statistics
     )
 
-# Create router for mortgage endpoints
-router = APIRouter(prefix="/api/dashboards/mortgage_rates", tags=["mortgage"])
-
-
 class MortgageRateDashboard(BaseDashboard):
     """
     Mortgage Rates Dashboard
@@ -47,7 +46,15 @@ class MortgageRateDashboard(BaseDashboard):
     
     def __init__(self, db_config: Dict):
         super().__init__(db_config)
-        self.engine = get_db_engine(db_config)
+        self.engine = get_db_engine("mortgage")
+
+    def _raise_internal_error(self, operation: str, error: Exception) -> None:
+        """Raise a standardized API error for dashboard failures."""
+        logger.exception("dashboard_error dashboard_id=mortgage_rates operation=%s", operation)
+        raise HTTPException(
+            status_code=500,
+            detail=f"mortgage_rates.{operation} failed: {error}"
+        ) from error
     
     async def get_data(self) -> Dict[str, Any]:
         """Get all data for this dashboard"""
@@ -59,7 +66,7 @@ class MortgageRateDashboard(BaseDashboard):
                 "historical_rates": historical
             }
         except Exception as e:
-            return {"error": str(e)}
+            self._raise_internal_error("data", e)
     
     async def get_current_rate_endpoint(self) -> Dict[str, Any]:
         """Get current mortgage rate"""
@@ -67,7 +74,7 @@ class MortgageRateDashboard(BaseDashboard):
             current = await get_current_rate(self.engine)
             return current
         except Exception as e:
-            return {"error": str(e)}
+            self._raise_internal_error("current_rate", e)
     
     async def get_historical_endpoint(self, days: int = 365) -> Dict[str, Any]:
         """Get historical rates"""
@@ -75,7 +82,7 @@ class MortgageRateDashboard(BaseDashboard):
             historical = await get_historical_rates(self.engine, days=days)
             return historical
         except Exception as e:
-            return {"error": str(e)}
+            self._raise_internal_error("historical_rates", e)
     
     async def get_rate_comparison_endpoint(self, days: int = 365) -> Dict[str, Any]:
         """Get rate comparison data"""
@@ -83,7 +90,7 @@ class MortgageRateDashboard(BaseDashboard):
             comparison = await get_rate_comparison(self.engine, days=days)
             return comparison
         except Exception as e:
-            return {"error": str(e)}
+            self._raise_internal_error("rate_comparison", e)
     
     async def get_rate_statistics_endpoint(self, days: int = 365) -> Dict[str, Any]:
         """Get rate statistics"""
@@ -91,50 +98,13 @@ class MortgageRateDashboard(BaseDashboard):
             statistics = await get_rate_statistics(self.engine, days=days)
             return statistics
         except Exception as e:
-            return {"error": str(e)}
+            self._raise_internal_error("rate_statistics", e)
 
-
-# Global instance for router
-_mortgage_dashboard: MortgageRateDashboard = None
-
-def get_mortgage_dashboard() -> MortgageRateDashboard:
-    """Dependency to inject mortgage dashboard"""
-    if _mortgage_dashboard is None:
-        raise ValueError("Mortgage dashboard not initialized")
-    return _mortgage_dashboard
-
-def set_mortgage_dashboard(dashboard: MortgageRateDashboard):
-    """Set the global mortgage dashboard instance"""
-    global _mortgage_dashboard
-    _mortgage_dashboard = dashboard
-
-
-# Router endpoints using Depends to avoid closure issues
-@router.get("/data")
-async def mortgage_data(dashboard: MortgageRateDashboard = Depends(get_mortgage_dashboard)):
-    return await dashboard.get_data()
-
-@router.get("/current_rate")
-async def mortgage_current(dashboard: MortgageRateDashboard = Depends(get_mortgage_dashboard)):
-    return await dashboard.get_current_rate_endpoint()
-
-@router.get("/historical_rates")
-async def mortgage_historical(
-    days: int = Query(365),
-    dashboard: MortgageRateDashboard = Depends(get_mortgage_dashboard)
-):
-    return await dashboard.get_historical_endpoint(days=days)
-
-@router.get("/rate_comparison")
-async def mortgage_comparison(
-    days: int = Query(365),
-    dashboard: MortgageRateDashboard = Depends(get_mortgage_dashboard)
-):
-    return await dashboard.get_rate_comparison_endpoint(days=days)
-
-@router.get("/rate_statistics")
-async def mortgage_stats(
-    days: int = Query(365),
-    dashboard: MortgageRateDashboard = Depends(get_mortgage_dashboard)
-):
-    return await dashboard.get_rate_statistics_endpoint(days=days)
+    def get_custom_routes(self) -> List[Dict[str, Any]]:
+        """Define mortgage dashboard-specific routes."""
+        return [
+            {"path": "current_rate", "endpoint": self.get_current_rate_endpoint},
+            {"path": "historical_rates", "endpoint": self.get_historical_endpoint},
+            {"path": "rate_comparison", "endpoint": self.get_rate_comparison_endpoint},
+            {"path": "rate_statistics", "endpoint": self.get_rate_statistics_endpoint},
+        ]

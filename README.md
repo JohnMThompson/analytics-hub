@@ -135,11 +135,23 @@ npm run dev
 
 Frontend runs on http://localhost:3000
 
+### CI/CD
+
+GitHub Actions runs CI on every pull request and on pushes to `main`.
+
+Current CI checks:
+- Backend tests: `cd backend && python3 -m pytest -q`
+- Frontend production build: `cd frontend && npm ci && npm run build`
+- Backend Docker smoke test: build backend image, run container, verify `/api/health`
+
+Planned later (not implemented yet):
+- Automatic deployment from `main` after CI passes
+
 ### Running Tests
 
 ```bash
 # Backend tests
-cd backend && pytest
+cd backend && python3 -m pytest
 
 # Frontend tests
 cd frontend && npm test
@@ -179,8 +191,18 @@ Each dashboard registers its own endpoints under `/api/dashboards/{dashboard-id}
 
 For example, mortgage rates dashboard:
 ```
-GET /api/dashboards/mortgage_rates/current
-GET /api/dashboards/mortgage_rates/historical?days=365
+GET /api/dashboards/mortgage_rates/current_rate
+GET /api/dashboards/mortgage_rates/historical_rates?days=365
+GET /api/dashboards/mortgage_rates/rate_comparison?days=365
+GET /api/dashboards/mortgage_rates/rate_statistics?days=365
+```
+
+Swim tracking dashboard:
+```
+GET /api/dashboards/swim_tracking/summary?days=365
+GET /api/dashboards/swim_tracking/distance_by_date?days=365
+GET /api/dashboards/swim_tracking/records?days=365&limit=50
+GET /api/dashboards/swim_tracking/stroke_breakdown?days=365
 ```
 
 ## Environment Variables
@@ -197,21 +219,27 @@ DB_MORTGAGE_NAME=
 # Application settings
 ENVIRONMENT=development
 DEBUG=true
+LOG_LEVEL=INFO
+ENABLE_MORTGAGE_DASHBOARD=true
+ENABLE_SWIM_DASHBOARD=false
 
-# Frontend
-REACT_APP_API_URL=http://localhost:8000
+# Frontend API target (optional for local dev via Vite proxy)
+# Docker build uses this value from docker-compose build args.
+VITE_API_URL=http://localhost:8000
 ```
 
 ## Troubleshooting
 
 ### Backend can't connect to database
 - Verify database credentials in `.env`
+- Verify dashboard toggle flags (e.g., `ENABLE_SWIM_DASHBOARD`) match intended enabled dashboards
 - Ensure MySQL instance is running
 - Check network connectivity to the database host
 
 ### Frontend can't reach backend API
 - Verify backend is running on http://localhost:8000
-- Check `REACT_APP_API_URL` in environment
+- For local dev (`npm run dev`), ensure Vite proxy is enabled in `frontend/vite.config.js`
+- For Docker image builds, set `VITE_API_URL` in `.env` before `docker-compose up --build`
 - Check browser console for CORS errors
 
 ### Docker Compose issues
@@ -221,6 +249,10 @@ REACT_APP_API_URL=http://localhost:8000
 ## Contributing
 
 Contributions are welcome! Follow the architecture patterns established in the first dashboard when adding new features.
+
+## Operations
+
+For operational checks and incident triage steps, see `OPERATIONS.md`.
 
 ## License
 

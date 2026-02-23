@@ -5,12 +5,21 @@ import pytest
 import asyncio
 from unittest.mock import Mock, AsyncMock, patch
 from datetime import datetime
-from backend.queries.mortgage import (
-    get_current_rate,
-    get_historical_rates,
-    get_rate_comparison,
-    get_rate_statistics
-)
+
+try:
+    from queries.mortgage import (
+        get_current_rate,
+        get_historical_rates,
+        get_rate_comparison,
+        get_rate_statistics
+    )
+except ImportError:
+    from backend.queries.mortgage import (
+        get_current_rate,
+        get_historical_rates,
+        get_rate_comparison,
+        get_rate_statistics
+    )
 
 
 @pytest.mark.asyncio
