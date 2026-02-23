@@ -40,8 +40,12 @@ export function ErrorAlert({ error, onRetry }) {
  * Card Component
  * Reusable card container
  */
-export function Card({ children, className = '' }) {
-  return <div className={`dashboard-panel ${className}`}>{children}</div>;
+export function Card({ children, className = '', ...props }) {
+  return (
+    <div className={`dashboard-panel ${className}`} {...props}>
+      {children}
+    </div>
+  );
 }
 
 export function DashboardSection({ title, subtitle = '', right = null, children, className = '' }) {
@@ -83,21 +87,54 @@ export function DataTablePanel({ children, className = '' }) {
  * Metric Card Component
  * Displays a single metric with label
  */
-export function MetricCard({ label, value, unit = '', change = null, trend = null }) {
+export function MetricCard({
+  label,
+  value,
+  unit = '',
+  change = null,
+  trend = null,
+  variant = 'default',
+  state = 'neutral',
+  secondary = '',
+  sparkline = null,
+}) {
   const changeClass = change > 0 ? 'status-positive' : change < 0 ? 'status-negative' : 'status-neutral';
-  
+  const stateClass = state === 'positive' ? 'status-positive' : state === 'negative' ? 'status-negative' : 'status-neutral';
+  const isEmphasis = variant === 'emphasis';
+  const isCompact = variant === 'compact';
+
+  const containerClass = isEmphasis
+    ? 'p-6 border-l-4'
+    : isCompact
+      ? 'p-4'
+      : 'p-6';
+
+  const containerStyle = isEmphasis
+    ? { borderLeftColor: 'var(--accent-600)', backgroundColor: 'var(--accent-50)' }
+    : {};
+
   return (
-    <Card className="p-6">
-      <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>{label}</p>
+    <Card className={containerClass} style={containerStyle}>
+      <p className={`font-medium mb-2 ${isCompact ? 'text-xs' : 'text-sm'}`} style={{ color: 'var(--text-secondary)' }}>
+        {label}
+      </p>
       <div className="flex items-baseline">
-        <p className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>{value}</p>
-        {unit && <span className="text-lg ml-2" style={{ color: 'var(--text-secondary)' }}>{unit}</span>}
+        <p className={`${isCompact ? 'text-2xl' : 'text-3xl'} font-bold`} style={{ color: 'var(--text-primary)' }}>
+          {value}
+        </p>
+        {unit && (
+          <span className={`${isCompact ? 'text-base' : 'text-lg'} ml-2`} style={{ color: 'var(--text-secondary)' }}>
+            {unit}
+          </span>
+        )}
       </div>
+      {secondary && <p className={`text-xs mt-2 ${stateClass}`}>{secondary}</p>}
       {change !== null && (
         <p className={`text-sm mt-2 ${changeClass}`}>
           {trend === 'up' && '↑'} {trend === 'down' && '↓'} {Math.abs(change).toFixed(2)}% from previous
         </p>
       )}
+      {sparkline && <div className="mt-3">{sparkline}</div>}
     </Card>
   );
 }

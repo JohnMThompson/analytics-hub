@@ -16,6 +16,7 @@ import {
   KpiGrid,
   ChartPanel,
 } from '../components/shared';
+import { formatPercent, formatSignedPercent } from '../utils/formatters';
 
 export default function MortgageRates() {
   const [currentRate, setCurrentRate] = useState(null);
@@ -130,20 +131,20 @@ export default function MortgageRates() {
             <KpiGrid columns={3}>
               <MetricCard
                 label="Current Rate"
-                value={comparison.current_rate?.toFixed(3)}
-                unit="%"
+                value={formatPercent(comparison.current_rate, 3)}
+                variant="emphasis"
               />
               <MetricCard
                 label="7 Days Ago"
-                value={comparison.previous_rate?.toFixed(3)}
-                unit="%"
+                value={formatPercent(comparison.previous_rate, 3)}
               />
               <MetricCard
                 label="Change"
-                value={Math.abs(comparison.change || 0).toFixed(3)}
-                unit="%"
+                value={formatSignedPercent(comparison.change || 0, 3)}
                 change={comparison.change}
                 trend={getTrendDirection(comparison.change)}
+                state={comparison.change > 0 ? 'negative' : comparison.change < 0 ? 'positive' : 'neutral'}
+                secondary="Compared with prior 7-day snapshot"
               />
             </KpiGrid>
           </DashboardSection>
@@ -196,23 +197,23 @@ export default function MortgageRates() {
             <KpiGrid columns={4}>
               <MetricCard
                 label="Minimum"
-                value={statistics.min?.toFixed(3)}
-                unit="%"
+                value={formatPercent(statistics.min, 3)}
+                variant="compact"
               />
               <MetricCard
                 label="Maximum"
-                value={statistics.max?.toFixed(3)}
-                unit="%"
+                value={formatPercent(statistics.max, 3)}
+                variant="compact"
               />
               <MetricCard
                 label="Average"
-                value={statistics.average?.toFixed(3)}
-                unit="%"
+                value={formatPercent(statistics.average, 3)}
+                variant="compact"
               />
               <MetricCard
                 label="Std Deviation"
-                value={statistics.std_dev?.toFixed(4)}
-                unit="%"
+                value={formatPercent(statistics.std_dev, 4)}
+                variant="compact"
               />
             </KpiGrid>
           </DashboardSection>

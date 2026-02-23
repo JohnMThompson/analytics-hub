@@ -17,6 +17,7 @@ import {
   ChartPanel,
   DataTablePanel,
 } from '../components/shared';
+import { formatDecimal, formatDurationHours, formatInteger } from '../utils/formatters';
 
 export default function SwimTracking() {
   const [summary, setSummary] = useState(null);
@@ -84,22 +85,23 @@ export default function SwimTracking() {
             <KpiGrid columns={4}>
               <MetricCard
                 label="Total Workouts"
-                value={summary.workout_count}
+                value={formatInteger(summary.workout_count)}
                 unit="sessions"
+                variant="emphasis"
               />
               <MetricCard
                 label="Total Distance"
-                value={summary.total_miles}
+                value={formatDecimal(summary.total_miles, 2)}
                 unit="miles"
               />
               <MetricCard
                 label="Total Time"
-                value={summary.total_hours}
-                unit="hours"
+                value={formatDurationHours(summary.total_hours)}
+                state="neutral"
               />
               <MetricCard
                 label="Total Yards"
-                value={summary.total_yards}
+                value={formatInteger(summary.total_yards)}
                 unit="yards"
               />
             </KpiGrid>
