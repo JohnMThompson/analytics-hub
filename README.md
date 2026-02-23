@@ -249,6 +249,10 @@ VITE_API_URL=http://localhost:8000
 
 Contributions are welcome! Follow the architecture patterns established in the first dashboard when adding new features.
 
+## Operations
+
+For operational checks and incident triage steps, see `OPERATIONS.md`.
+
 ## License
 
 MIT
