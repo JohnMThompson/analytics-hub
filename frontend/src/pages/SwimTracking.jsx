@@ -21,6 +21,7 @@ import {
   DonutChartPanel,
   PieChartPanel,
 } from '../components/charts';
+import DataTable from '../components/table';
 import { formatDecimal, formatDurationHours, formatInteger } from '../utils/formatters';
 
 export default function SwimTracking() {
@@ -81,6 +82,36 @@ export default function SwimTracking() {
       { stroke: 'Butterfly', yards: strokes.butterfly || 0 },
     ]
     : [];
+
+  const recentWorkoutColumns = [
+    {
+      key: 'start_date_time',
+      header: 'Date & Time',
+      render: (row) => formatDateTime(row.start_date_time),
+    },
+    {
+      key: 'duration',
+      header: 'Duration',
+      render: (row) => formatTime(row.duration),
+    },
+    {
+      key: 'total_distance_yards',
+      header: 'Distance (yards)',
+      tone: 'primary',
+      render: (row) => formatInteger(row.total_distance_yards),
+    },
+    {
+      key: 'location',
+      header: 'Location',
+      render: (row) => row.location || '—',
+    },
+    {
+      key: 'comments',
+      header: 'Comments',
+      className: 'text-xs',
+      render: (row) => row.comments || '—',
+    },
+  ];
 
   return (
     <DashboardLayout
@@ -199,28 +230,12 @@ export default function SwimTracking() {
         {records.length > 0 && (
           <DashboardSection title="Recent Workouts">
             <DataTablePanel>
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-3 px-4 font-semibold" style={{ color: 'var(--text-primary)' }}>Date & Time</th>
-                    <th className="text-left py-3 px-4 font-semibold" style={{ color: 'var(--text-primary)' }}>Duration</th>
-                    <th className="text-left py-3 px-4 font-semibold" style={{ color: 'var(--text-primary)' }}>Distance (yards)</th>
-                    <th className="text-left py-3 px-4 font-semibold" style={{ color: 'var(--text-primary)' }}>Location</th>
-                    <th className="text-left py-3 px-4 font-semibold" style={{ color: 'var(--text-primary)' }}>Comments</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {records.map((record, idx) => (
-                    <tr key={record.id} className={idx % 2 === 0 ? 'bg-gray-50' : ''}>
-                      <td className="py-3 px-4" style={{ color: 'var(--text-secondary)' }}>{formatDateTime(record.start_date_time)}</td>
-                      <td className="py-3 px-4" style={{ color: 'var(--text-secondary)' }}>{formatTime(record.duration)}</td>
-                      <td className="py-3 px-4 font-semibold" style={{ color: 'var(--text-primary)' }}>{record.total_distance_yards}</td>
-                      <td className="py-3 px-4" style={{ color: 'var(--text-secondary)' }}>{record.location || '—'}</td>
-                      <td className="py-3 px-4 text-xs" style={{ color: 'var(--text-secondary)' }}>{record.comments || '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <DataTable
+                columns={recentWorkoutColumns}
+                rows={records}
+                rowKey="id"
+                emptyMessage="No workouts found."
+              />
             </DataTablePanel>
           </DashboardSection>
         )}
