@@ -4,7 +4,6 @@
  */
 
 import { useState, useEffect } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import apiClient from '../services/api';
 import DashboardLayout from '../layouts/DashboardLayout';
 import {
@@ -14,9 +13,14 @@ import {
   Card,
   DashboardSection,
   KpiGrid,
-  ChartPanel,
   DataTablePanel,
 } from '../components/shared';
+import {
+  BarChartPanel,
+  ColumnChartPanel,
+  DonutChartPanel,
+  PieChartPanel,
+} from '../components/charts';
 import { formatDecimal, formatDurationHours, formatInteger } from '../utils/formatters';
 
 export default function SwimTracking() {
@@ -69,6 +73,15 @@ export default function SwimTracking() {
     return date.toLocaleString();
   };
 
+  const strokeDistribution = strokes
+    ? [
+      { stroke: 'Freestyle', yards: strokes.freestyle || 0 },
+      { stroke: 'Backstroke', yards: strokes.backstroke || 0 },
+      { stroke: 'Breaststroke', yards: strokes.breaststroke || 0 },
+      { stroke: 'Butterfly', yards: strokes.butterfly || 0 },
+    ]
+    : [];
+
   return (
     <DashboardLayout
       title="Swim Tracking"
@@ -111,34 +124,19 @@ export default function SwimTracking() {
         {/* Daily Distance Chart */}
         {dailyData.length > 0 && (
           <DashboardSection title="Daily Distance (Yards)">
-            <ChartPanel>
-              <ResponsiveContainer width="100%" height={400}>
-                <BarChart data={dailyData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis
-                    dataKey="date"
-                    tick={{ fontSize: 12 }}
-                    interval={Math.floor(dailyData.length / 10)}
-                  />
-                  <YAxis />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: '#fff', border: '1px solid #ccc' }}
-                    formatter={(value) => `${value} yards`}
-                    labelFormatter={(date) => `Date: ${date}`}
-                  />
-                  <Bar
-                    dataKey="total_yards"
-                    fill="#0284c7"
-                    name="Distance (yards)"
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartPanel>
+            <ColumnChartPanel
+              data={dailyData}
+              xKey="date"
+              bars={[{ dataKey: 'total_yards', name: 'Distance (yards)', color: 'var(--chart-4)' }]}
+              height={400}
+              valueFormatter={(value) => `${formatInteger(value)} yards`}
+              labelFormatter={(date) => `Date: ${date}`}
+            />
           </DashboardSection>
         )}
 
-        {/* Stroke Breakdown */}
-        {strokes && (
+        {/* Stroke Breakdown KPIs */}
+        {strokeDistribution.length > 0 && (
           <DashboardSection title="Distance by Stroke">
             <KpiGrid columns={4}>
               <Card className="p-6 border-l-4 border-blue-500">
@@ -163,6 +161,38 @@ export default function SwimTracking() {
               </Card>
             </KpiGrid>
           </DashboardSection>
+        )}
+
+        {/* Bar / Pie / Donut Charts */}
+        {strokeDistribution.length > 0 && (
+          <>
+            <DashboardSection title="Stroke Distribution (Bar)">
+              <BarChartPanel
+                data={strokeDistribution}
+                yKey="stroke"
+                barKey="yards"
+                barName="Distance (yards)"
+                valueFormatter={(value) => `${formatInteger(value)} yards`}
+                labelFormatter={(stroke) => `Stroke: ${stroke}`}
+              />
+            </DashboardSection>
+            <DashboardSection title="Stroke Distribution (Pie & Donut)">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <PieChartPanel
+                  data={strokeDistribution}
+                  dataKey="yards"
+                  nameKey="stroke"
+                  valueFormatter={(value) => `${formatInteger(value)} yards`}
+                />
+                <DonutChartPanel
+                  data={strokeDistribution}
+                  dataKey="yards"
+                  nameKey="stroke"
+                  valueFormatter={(value) => `${formatInteger(value)} yards`}
+                />
+              </div>
+            </DashboardSection>
+          </>
         )}
 
         {/* Records Table */}

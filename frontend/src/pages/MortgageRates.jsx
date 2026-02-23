@@ -4,7 +4,6 @@
  */
 
 import { useState, useEffect } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import apiClient from '../services/api';
 import DashboardLayout from '../layouts/DashboardLayout';
 import {
@@ -14,8 +13,8 @@ import {
   Card,
   DashboardSection,
   KpiGrid,
-  ChartPanel,
 } from '../components/shared';
+import { LineChartPanel } from '../components/charts';
 import { formatPercent, formatSignedPercent } from '../utils/formatters';
 
 export default function MortgageRates() {
@@ -153,41 +152,17 @@ export default function MortgageRates() {
         {/* Historical Chart Section */}
         {historicalData.length > 0 && (
           <DashboardSection title="1-Year Historical Trend">
-            <ChartPanel>
-              <ResponsiveContainer width="100%" height={400}>
-                <LineChart data={historicalData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis
-                    dataKey="date"
-                    tick={{ fontSize: 12 }}
-                    interval={Math.floor(historicalData.length / 6)}
-                  />
-                  <YAxis domain={['dataMin - 0.5', 'dataMax + 0.5']} />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: '#fff', border: '1px solid #ccc' }}
-                    formatter={(value) => value ? `${value.toFixed(3)}%` : 'N/A'}
-                    labelFormatter={(date) => `Date: ${date}`}
-                  />
-                  <Legend />
-                  <Line
-                    type="monotone"
-                    dataKey="effective_rate_30yr"
-                    stroke="#1e40af"
-                    name="30-Year Fixed"
-                    dot={false}
-                    strokeWidth={2}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="effective_rate_7arm"
-                    stroke="#16a34a"
-                    name="7/1 ARM"
-                    dot={false}
-                    strokeWidth={2}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </ChartPanel>
+            <LineChartPanel
+              data={historicalData}
+              xKey="date"
+              lines={[
+                { dataKey: 'effective_rate_30yr', name: '30-Year Fixed', color: 'var(--chart-1)' },
+                { dataKey: 'effective_rate_7arm', name: '7/1 ARM', color: 'var(--chart-2)' },
+              ]}
+              height={400}
+              valueFormatter={(value) => (value ? `${value.toFixed(3)}%` : 'N/A')}
+              labelFormatter={(date) => `Date: ${date}`}
+            />
           </DashboardSection>
         )}
 
