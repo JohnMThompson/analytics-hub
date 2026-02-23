@@ -2,10 +2,185 @@
 @tailwind components;
 @tailwind utilities;
 
-html {
-  scroll-behavior: smooth;
+@layer base {
+  :root {
+    --font-sans: "Avenir Next", "Segoe UI", "Noto Sans", "Liberation Sans", sans-serif;
+
+    --bg-canvas: #f4f7fb;
+    --bg-panel: #ffffff;
+    --bg-elevated: #ffffff;
+    --bg-muted: #e9eef5;
+
+    --text-primary: #0f172a;
+    --text-secondary: #334155;
+    --text-muted: #64748b;
+    --text-inverse: #f8fafc;
+
+    --border-soft: #dbe5f0;
+    --border-strong: #b7c7da;
+
+    --focus-ring: #0f3c8c;
+
+    --status-positive: #0f766e;
+    --status-negative: #be123c;
+    --status-neutral: #475569;
+
+    --surface-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+    --surface-shadow-strong: 0 20px 36px rgba(15, 23, 42, 0.12);
+
+    --radius-panel: 14px;
+    --radius-badge: 9999px;
+
+    --space-2xs: 0.25rem;
+    --space-xs: 0.5rem;
+    --space-sm: 0.75rem;
+    --space-md: 1rem;
+    --space-lg: 1.5rem;
+    --space-xl: 2rem;
+    --space-2xl: 3rem;
+
+    --accent-50: #eff6ff;
+    --accent-100: #dbeafe;
+    --accent-500: #2563eb;
+    --accent-600: #1d4ed8;
+    --accent-700: #1e3a8a;
+
+    --chart-1: #2563eb;
+    --chart-2: #0f766e;
+    --chart-3: #ca8a04;
+    --chart-4: #7c3aed;
+    --chart-5: #c2410c;
+  }
+
+  .theme-default {
+    --accent-50: #eff6ff;
+    --accent-100: #dbeafe;
+    --accent-500: #2563eb;
+    --accent-600: #1d4ed8;
+    --accent-700: #1e3a8a;
+    --chart-1: #2563eb;
+    --chart-2: #0f766e;
+    --chart-3: #ca8a04;
+    --chart-4: #7c3aed;
+    --chart-5: #c2410c;
+  }
+
+  .theme-mortgage {
+    --accent-50: #ecfeff;
+    --accent-100: #cffafe;
+    --accent-500: #0891b2;
+    --accent-600: #0e7490;
+    --accent-700: #155e75;
+    --chart-1: #0891b2;
+    --chart-2: #0f766e;
+    --chart-3: #0369a1;
+    --chart-4: #ca8a04;
+    --chart-5: #be123c;
+  }
+
+  .theme-swim {
+    --accent-50: #eff6ff;
+    --accent-100: #dbeafe;
+    --accent-500: #1d4ed8;
+    --accent-600: #1e40af;
+    --accent-700: #1e3a8a;
+    --chart-1: #1d4ed8;
+    --chart-2: #0f766e;
+    --chart-3: #ea580c;
+    --chart-4: #0284c7;
+    --chart-5: #7c3aed;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background: radial-gradient(circle at 10% 0%, #ffffff 0%, #edf2f8 45%, #e6edf6 100%);
+    color: var(--text-primary);
+  }
 }
 
-body {
-  font-family: system-ui, -apple-system, sans-serif;
+@layer components {
+  .dashboard-shell {
+    @apply min-h-screen;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.7) 0%, transparent 30%);
+  }
+
+  .dashboard-header {
+    @apply sticky top-0 z-20 border-b backdrop-blur-md;
+    border-color: var(--border-soft);
+    background-color: rgba(255, 255, 255, 0.88);
+  }
+
+  .dashboard-header-inner {
+    @apply mx-auto flex max-w-7xl items-center justify-between px-4 py-5;
+  }
+
+  .dashboard-title {
+    @apply text-3xl font-semibold tracking-tight;
+    color: var(--text-primary);
+  }
+
+  .dashboard-subtitle {
+    @apply mt-1 text-sm;
+    color: var(--text-secondary);
+  }
+
+  .dashboard-content {
+    @apply mx-auto max-w-7xl px-4 py-6;
+  }
+
+  .dashboard-section {
+    @apply mb-8;
+  }
+
+  .dashboard-section-title {
+    @apply mb-4 text-xl font-semibold tracking-tight;
+    color: var(--text-primary);
+  }
+
+  .dashboard-panel {
+    @apply border p-6;
+    border-radius: var(--radius-panel);
+    border-color: var(--border-soft);
+    background-color: var(--bg-panel);
+    box-shadow: var(--surface-shadow);
+  }
+
+  .dashboard-badge {
+    @apply inline-flex items-center px-3 py-1 text-xs font-medium;
+    border-radius: var(--radius-badge);
+    background-color: var(--accent-100);
+    color: var(--accent-700);
+  }
+
+  .dashboard-link {
+    @apply text-sm font-medium transition-colors;
+    color: var(--accent-600);
+  }
+
+  .dashboard-link:hover {
+    color: var(--accent-700);
+  }
+}
+
+@layer utilities {
+  .status-positive {
+    color: var(--status-positive);
+  }
+
+  .status-negative {
+    color: var(--status-negative);
+  }
+
+  .status-neutral {
+    color: var(--status-neutral);
+  }
+
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2;
+    --tw-ring-color: var(--focus-ring);
+  }
 }
