@@ -92,12 +92,14 @@ export default function SwimTracking() {
     {
       key: 'duration',
       header: 'Duration',
+      align: 'right',
       render: (row) => formatTime(row.duration),
     },
     {
       key: 'total_distance_yards',
       header: 'Distance (yards)',
       tone: 'primary',
+      align: 'right',
       render: (row) => formatInteger(row.total_distance_yards),
     },
     {
@@ -108,7 +110,8 @@ export default function SwimTracking() {
     {
       key: 'comments',
       header: 'Comments',
-      className: 'text-xs',
+      tone: 'muted',
+      className: 'text-xs max-w-[260px] truncate',
       render: (row) => row.comments || '—',
     },
   ];
