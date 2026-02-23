@@ -4,10 +4,19 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import apiClient from '../services/api';
-import { LoadingSpinner, ErrorAlert, MetricCard, Card } from '../components/shared';
+import DashboardLayout from '../layouts/DashboardLayout';
+import {
+  LoadingSpinner,
+  ErrorAlert,
+  MetricCard,
+  Card,
+  DashboardSection,
+  KpiGrid,
+  ChartPanel,
+  DataTablePanel,
+} from '../components/shared';
 
 export default function SwimTracking() {
   const [summary, setSummary] = useState(null);
@@ -60,29 +69,19 @@ export default function SwimTracking() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto py-6 px-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Swim Tracking</h1>
-            <p className="text-gray-600 mt-1">Personal swimming statistics and workout history</p>
-          </div>
-          <Link to="/" className="text-blue-600 hover:text-blue-700">
-            Back to Dashboards
-          </Link>
-        </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto py-6 px-4">
+    <DashboardLayout
+      title="Swim Tracking"
+      subtitle="Personal swimming statistics and workout history"
+      themeClass="theme-swim"
+    >
         {error && (
           <ErrorAlert error={error} onRetry={fetchSwimData} />
         )}
 
         {/* Summary Section */}
         {summary && (
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">1-Year Summary (Last 365 Days)</h2>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <DashboardSection title="1-Year Summary (Last 365 Days)">
+            <KpiGrid columns={4}>
               <MetricCard
                 label="Total Workouts"
                 value={summary.workout_count}
@@ -103,15 +102,14 @@ export default function SwimTracking() {
                 value={summary.total_yards}
                 unit="yards"
               />
-            </div>
-          </div>
+            </KpiGrid>
+          </DashboardSection>
         )}
 
         {/* Daily Distance Chart */}
         {dailyData.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Daily Distance (Yards)</h2>
-            <Card className="p-6">
+          <DashboardSection title="Daily Distance (Yards)">
+            <ChartPanel>
               <ResponsiveContainer width="100%" height={400}>
                 <BarChart data={dailyData}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -133,70 +131,67 @@ export default function SwimTracking() {
                   />
                 </BarChart>
               </ResponsiveContainer>
-            </Card>
-          </div>
+            </ChartPanel>
+          </DashboardSection>
         )}
 
         {/* Stroke Breakdown */}
         {strokes && (
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Distance by Stroke</h2>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <DashboardSection title="Distance by Stroke">
+            <KpiGrid columns={4}>
               <Card className="p-6 border-l-4 border-blue-500">
-                <p className="text-sm font-medium text-gray-600 mb-2">Freestyle</p>
-                <p className="text-3xl font-bold text-gray-900">{strokes.freestyle}</p>
-                <p className="text-xs text-gray-500 mt-1">yards</p>
+                <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>Freestyle</p>
+                <p className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>{strokes.freestyle}</p>
+                <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>yards</p>
               </Card>
               <Card className="p-6 border-l-4 border-green-500">
-                <p className="text-sm font-medium text-gray-600 mb-2">Backstroke</p>
-                <p className="text-3xl font-bold text-gray-900">{strokes.backstroke}</p>
-                <p className="text-xs text-gray-500 mt-1">yards</p>
+                <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>Backstroke</p>
+                <p className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>{strokes.backstroke}</p>
+                <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>yards</p>
               </Card>
               <Card className="p-6 border-l-4 border-purple-500">
-                <p className="text-sm font-medium text-gray-600 mb-2">Breaststroke</p>
-                <p className="text-3xl font-bold text-gray-900">{strokes.breaststroke}</p>
-                <p className="text-xs text-gray-500 mt-1">yards</p>
+                <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>Breaststroke</p>
+                <p className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>{strokes.breaststroke}</p>
+                <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>yards</p>
               </Card>
               <Card className="p-6 border-l-4 border-orange-500">
-                <p className="text-sm font-medium text-gray-600 mb-2">Butterfly</p>
-                <p className="text-3xl font-bold text-gray-900">{strokes.butterfly}</p>
-                <p className="text-xs text-gray-500 mt-1">yards</p>
+                <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>Butterfly</p>
+                <p className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>{strokes.butterfly}</p>
+                <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>yards</p>
               </Card>
-            </div>
-          </div>
+            </KpiGrid>
+          </DashboardSection>
         )}
 
         {/* Records Table */}
         {records.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Recent Workouts</h2>
-            <Card className="p-6 overflow-x-auto">
+          <DashboardSection title="Recent Workouts">
+            <DataTablePanel>
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left py-3 px-4 font-semibold text-gray-900">Date & Time</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-900">Duration</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-900">Distance (yards)</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-900">Location</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-900">Comments</th>
+                    <th className="text-left py-3 px-4 font-semibold" style={{ color: 'var(--text-primary)' }}>Date & Time</th>
+                    <th className="text-left py-3 px-4 font-semibold" style={{ color: 'var(--text-primary)' }}>Duration</th>
+                    <th className="text-left py-3 px-4 font-semibold" style={{ color: 'var(--text-primary)' }}>Distance (yards)</th>
+                    <th className="text-left py-3 px-4 font-semibold" style={{ color: 'var(--text-primary)' }}>Location</th>
+                    <th className="text-left py-3 px-4 font-semibold" style={{ color: 'var(--text-primary)' }}>Comments</th>
                   </tr>
                 </thead>
                 <tbody>
                   {records.map((record, idx) => (
                     <tr key={record.id} className={idx % 2 === 0 ? 'bg-gray-50' : ''}>
-                      <td className="py-3 px-4 text-gray-600">{formatDateTime(record.start_date_time)}</td>
-                      <td className="py-3 px-4 text-gray-600">{formatTime(record.duration)}</td>
-                      <td className="py-3 px-4 font-semibold text-gray-900">{record.total_distance_yards}</td>
-                      <td className="py-3 px-4 text-gray-600">{record.location || '—'}</td>
-                      <td className="py-3 px-4 text-gray-600 text-xs">{record.comments || '—'}</td>
+                      <td className="py-3 px-4" style={{ color: 'var(--text-secondary)' }}>{formatDateTime(record.start_date_time)}</td>
+                      <td className="py-3 px-4" style={{ color: 'var(--text-secondary)' }}>{formatTime(record.duration)}</td>
+                      <td className="py-3 px-4 font-semibold" style={{ color: 'var(--text-primary)' }}>{record.total_distance_yards}</td>
+                      <td className="py-3 px-4" style={{ color: 'var(--text-secondary)' }}>{record.location || '—'}</td>
+                      <td className="py-3 px-4 text-xs" style={{ color: 'var(--text-secondary)' }}>{record.comments || '—'}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            </Card>
-          </div>
+            </DataTablePanel>
+          </DashboardSection>
         )}
-      </main>
-    </div>
+    </DashboardLayout>
   );
 }

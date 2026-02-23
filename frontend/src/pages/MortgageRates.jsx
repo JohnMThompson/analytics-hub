@@ -4,10 +4,18 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import apiClient from '../services/api';
-import { LoadingSpinner, ErrorAlert, MetricCard, Card } from '../components/shared';
+import DashboardLayout from '../layouts/DashboardLayout';
+import {
+  LoadingSpinner,
+  ErrorAlert,
+  MetricCard,
+  Card,
+  DashboardSection,
+  KpiGrid,
+  ChartPanel,
+} from '../components/shared';
 
 export default function MortgageRates() {
   const [currentRate, setCurrentRate] = useState(null);
@@ -54,83 +62,72 @@ export default function MortgageRates() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto py-6 px-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Mortgage Rates</h1>
-            <p className="text-gray-600 mt-1">Current rates and 1-year historical trends</p>
-          </div>
-          <Link to="/" className="text-blue-600 hover:text-blue-700">
-            Back to Dashboards
-          </Link>
-        </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto py-6 px-4">
+    <DashboardLayout
+      title="Mortgage Rates"
+      subtitle="Current rates and 1-year historical trends"
+      themeClass="theme-mortgage"
+    >
         {error && (
           <ErrorAlert error={error} onRetry={fetchMortgageData} />
         )}
 
         {/* Current Rates Section */}
         {currentRate && (
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Current Rates</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <DashboardSection title="Current Rates">
+            <KpiGrid columns={2}>
               <Card className="p-6 border-t-4 border-blue-600">
-                <p className="text-sm font-medium text-gray-600 mb-2">30-Year Fixed</p>
+                <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>30-Year Fixed</p>
                 <div className="flex items-baseline">
-                  <p className="text-4xl font-bold text-gray-900">
+                  <p className="text-4xl font-bold" style={{ color: 'var(--text-primary)' }}>
                     {currentRate.effective_rate_30yr?.toFixed(3)}%
                   </p>
-                  <span className="text-sm text-gray-600 ml-2">
+                  <span className="text-sm ml-2" style={{ color: 'var(--text-secondary)' }}>
                     {currentRate.points_30yr ? `${currentRate.points_30yr} pts` : 'No points'}
                   </span>
                 </div>
-                <p className="text-xs text-gray-500 mt-2">
+                <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
                   Listed rate: {currentRate.rate_30yr?.toFixed(3)}%
                 </p>
                 {currentRate.source && (
-                  <p className="text-xs text-gray-500 mt-1">Source: {currentRate.source}</p>
+                  <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Source: {currentRate.source}</p>
                 )}
                 {currentRate.timestamp && (
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
                     Updated: {new Date(currentRate.timestamp).toLocaleString()}
                   </p>
                 )}
               </Card>
 
               <Card className="p-6 border-t-4 border-green-600">
-                <p className="text-sm font-medium text-gray-600 mb-2">7/1 ARM</p>
+                <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>7/1 ARM</p>
                 <div className="flex items-baseline">
-                  <p className="text-4xl font-bold text-gray-900">
+                  <p className="text-4xl font-bold" style={{ color: 'var(--text-primary)' }}>
                     {currentRate.effective_rate_7arm?.toFixed(3)}%
                   </p>
-                  <span className="text-sm text-gray-600 ml-2">
+                  <span className="text-sm ml-2" style={{ color: 'var(--text-secondary)' }}>
                     {currentRate.points_7arm ? `${currentRate.points_7arm} pts` : 'No points'}
                   </span>
                 </div>
-                <p className="text-xs text-gray-500 mt-2">
+                <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
                   Listed rate: {currentRate.rate_7arm?.toFixed(3)}%
                 </p>
                 {currentRate.source && (
-                  <p className="text-xs text-gray-500 mt-1">Source: {currentRate.source}</p>
+                  <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Source: {currentRate.source}</p>
                 )}
                 {currentRate.timestamp && (
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
                     Updated: {new Date(currentRate.timestamp).toLocaleString()}
                   </p>
                 )}
               </Card>
-            </div>
-          </div>
+            </KpiGrid>
+          </DashboardSection>
         )}
 
         {/* Comparison Section */}
         {comparison && (
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Rate Comparison</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <DashboardSection title="Rate Comparison">
+            <KpiGrid columns={3}>
               <MetricCard
                 label="Current Rate"
                 value={comparison.current_rate?.toFixed(3)}
@@ -148,15 +145,14 @@ export default function MortgageRates() {
                 change={comparison.change}
                 trend={getTrendDirection(comparison.change)}
               />
-            </div>
-          </div>
+            </KpiGrid>
+          </DashboardSection>
         )}
 
         {/* Historical Chart Section */}
         {historicalData.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">1-Year Historical Trend</h2>
-            <Card className="p-6">
+          <DashboardSection title="1-Year Historical Trend">
+            <ChartPanel>
               <ResponsiveContainer width="100%" height={400}>
                 <LineChart data={historicalData}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -190,15 +186,14 @@ export default function MortgageRates() {
                   />
                 </LineChart>
               </ResponsiveContainer>
-            </Card>
-          </div>
+            </ChartPanel>
+          </DashboardSection>
         )}
 
         {/* Statistics Section */}
         {statistics && (
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">1-Year Statistics</h2>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <DashboardSection title="1-Year Statistics">
+            <KpiGrid columns={4}>
               <MetricCard
                 label="Minimum"
                 value={statistics.min?.toFixed(3)}
@@ -219,10 +214,9 @@ export default function MortgageRates() {
                 value={statistics.std_dev?.toFixed(4)}
                 unit="%"
               />
-            </div>
-          </div>
+            </KpiGrid>
+          </DashboardSection>
         )}
-      </main>
-    </div>
+    </DashboardLayout>
   );
 }

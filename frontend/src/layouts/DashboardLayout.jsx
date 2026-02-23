@@ -3,15 +3,32 @@
  * Wrapper for all dashboard pages
  */
 
-export function DashboardLayout({ children, title }) {
+import { Link } from 'react-router-dom';
+
+export function DashboardLayout({
+  children,
+  title,
+  subtitle = '',
+  backTo = '/',
+  backLabel = 'Back to Dashboards',
+  themeClass = 'theme-default',
+  controls = null,
+}) {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto py-6 px-4">
-          <h1 className="text-3xl font-bold text-gray-900">{title}</h1>
+    <div className={`dashboard-shell ${themeClass}`}>
+      <header className="dashboard-header">
+        <div className="dashboard-header-inner">
+          <div>
+            <h1 className="dashboard-title">{title}</h1>
+            {subtitle && <p className="dashboard-subtitle">{subtitle}</p>}
+          </div>
+          <Link to={backTo} className="dashboard-link focus-ring">
+            {backLabel}
+          </Link>
         </div>
       </header>
-      <main className="max-w-7xl mx-auto py-6 px-4">
+      <main className="dashboard-content">
+        {controls}
         {children}
       </main>
     </div>
