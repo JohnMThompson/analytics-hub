@@ -93,6 +93,7 @@ export function MetricCard({
   unit = '',
   change = null,
   trend = null,
+  changeSuffix = 'from previous',
   variant = 'default',
   state = 'neutral',
   secondary = '',
@@ -131,7 +132,7 @@ export function MetricCard({
       {secondary && <p className={`text-xs mt-2 ${stateClass}`}>{secondary}</p>}
       {change !== null && (
         <p className={`text-sm mt-2 ${changeClass}`}>
-          {trend === 'up' && '↑'} {trend === 'down' && '↓'} {Math.abs(change).toFixed(2)}% from previous
+          {trend === 'up' && '↑'} {trend === 'down' && '↓'} {Math.abs(change).toFixed(2)}% {changeSuffix}
         </p>
       )}
       {sparkline && <div className="mt-3">{sparkline}</div>}

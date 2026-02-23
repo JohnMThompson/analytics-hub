@@ -47,6 +47,7 @@ export function LineChartPanel({
   xKey,
   lines = [],
   height = 360,
+  yDomain = ['auto', 'auto'],
   emptyMessage = 'No chart data available.',
   valueFormatter = (value) => value,
   labelFormatter = (label) => label,
@@ -61,7 +62,7 @@ export function LineChartPanel({
         <LineChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="#dbe5f0" />
           <XAxis dataKey={xKey} tick={{ fontSize: 12, fill: '#475569' }} />
-          <YAxis tick={{ fontSize: 12, fill: '#475569' }} />
+          <YAxis domain={yDomain} tick={{ fontSize: 12, fill: '#475569' }} />
           <Tooltip contentStyle={tooltipStyle} formatter={valueFormatter} labelFormatter={labelFormatter} />
           <Legend />
           {lines.map((line, idx) => (
