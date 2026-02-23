@@ -61,6 +61,26 @@ export default function MortgageRates() {
     return null;
   };
 
+  const getPreviousAndDelta = (currentValue, key) => {
+    if (!Array.isArray(historicalData) || historicalData.length < 2 || !Number.isFinite(currentValue)) {
+      return { previous: null, delta: null };
+    }
+
+    const numericHistory = historicalData
+      .map((item) => Number(item?.[key]))
+      .filter((value) => Number.isFinite(value));
+
+    if (numericHistory.length < 2) return { previous: null, delta: null };
+
+    const previous = numericHistory[numericHistory.length - 2];
+    return { previous, delta: currentValue - previous };
+  };
+
+  const current30 = Number(currentRate?.effective_rate_30yr);
+  const current7Arm = Number(currentRate?.effective_rate_7arm);
+  const trend30 = getPreviousAndDelta(current30, 'effective_rate_30yr');
+  const trend7Arm = getPreviousAndDelta(current7Arm, 'effective_rate_7arm');
+
   return (
     <DashboardLayout
       title="Mortgage Rates"
@@ -75,50 +95,38 @@ export default function MortgageRates() {
         {currentRate && (
           <DashboardSection title="Current Rates">
             <KpiGrid columns={2}>
-              <Card className="p-6 border-t-4 border-blue-600">
-                <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>30-Year Fixed</p>
-                <div className="flex items-baseline">
-                  <p className="text-4xl font-bold" style={{ color: 'var(--text-primary)' }}>
-                    {currentRate.effective_rate_30yr?.toFixed(3)}%
+              <Card className="border-t-4 border-cyan-600">
+                <div className="min-h-[220px] flex flex-col items-center justify-between text-center">
+                  <p className="text-base font-semibold tracking-tight" style={{ color: 'var(--text-secondary)' }}>30-Year Fixed</p>
+                  <p className="text-6xl font-bold leading-none" style={{ color: 'var(--text-primary)' }}>
+                    {formatPercent(current30, 3)}
                   </p>
-                  <span className="text-sm ml-2" style={{ color: 'var(--text-secondary)' }}>
-                    {currentRate.points_30yr ? `${currentRate.points_30yr} pts` : 'No points'}
-                  </span>
+                  <div className="w-full rounded-xl border p-3" style={{ borderColor: 'var(--border-soft)', backgroundColor: 'var(--bg-muted)' }}>
+                    <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                      Previous: {trend30.previous === null ? '—' : formatPercent(trend30.previous, 3)}
+                    </p>
+                    <p className={`text-sm font-semibold mt-1 ${trend30.delta < 0 ? 'status-positive' : trend30.delta > 0 ? 'status-negative' : 'status-neutral'}`}>
+                      Delta: {trend30.delta === null ? '—' : formatSignedPercent(trend30.delta, 3)}
+                    </p>
+                  </div>
                 </div>
-                <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
-                  Listed rate: {currentRate.rate_30yr?.toFixed(3)}%
-                </p>
-                {currentRate.source && (
-                  <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Source: {currentRate.source}</p>
-                )}
-                {currentRate.timestamp && (
-                  <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
-                    Updated: {new Date(currentRate.timestamp).toLocaleString()}
-                  </p>
-                )}
               </Card>
 
-              <Card className="p-6 border-t-4 border-green-600">
-                <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>7/1 ARM</p>
-                <div className="flex items-baseline">
-                  <p className="text-4xl font-bold" style={{ color: 'var(--text-primary)' }}>
-                    {currentRate.effective_rate_7arm?.toFixed(3)}%
+              <Card className="border-t-4 border-teal-600">
+                <div className="min-h-[220px] flex flex-col items-center justify-between text-center">
+                  <p className="text-base font-semibold tracking-tight" style={{ color: 'var(--text-secondary)' }}>7/1 ARM</p>
+                  <p className="text-6xl font-bold leading-none" style={{ color: 'var(--text-primary)' }}>
+                    {formatPercent(current7Arm, 3)}
                   </p>
-                  <span className="text-sm ml-2" style={{ color: 'var(--text-secondary)' }}>
-                    {currentRate.points_7arm ? `${currentRate.points_7arm} pts` : 'No points'}
-                  </span>
+                  <div className="w-full rounded-xl border p-3" style={{ borderColor: 'var(--border-soft)', backgroundColor: 'var(--bg-muted)' }}>
+                    <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                      Previous: {trend7Arm.previous === null ? '—' : formatPercent(trend7Arm.previous, 3)}
+                    </p>
+                    <p className={`text-sm font-semibold mt-1 ${trend7Arm.delta < 0 ? 'status-positive' : trend7Arm.delta > 0 ? 'status-negative' : 'status-neutral'}`}>
+                      Delta: {trend7Arm.delta === null ? '—' : formatSignedPercent(trend7Arm.delta, 3)}
+                    </p>
+                  </div>
                 </div>
-                <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
-                  Listed rate: {currentRate.rate_7arm?.toFixed(3)}%
-                </p>
-                {currentRate.source && (
-                  <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Source: {currentRate.source}</p>
-                )}
-                {currentRate.timestamp && (
-                  <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
-                    Updated: {new Date(currentRate.timestamp).toLocaleString()}
-                  </p>
-                )}
               </Card>
             </KpiGrid>
           </DashboardSection>

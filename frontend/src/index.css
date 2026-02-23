@@ -28,7 +28,7 @@
     --surface-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
     --surface-shadow-strong: 0 20px 36px rgba(15, 23, 42, 0.12);
 
-    --radius-panel: 14px;
+    --radius-panel: 18px;
     --radius-badge: 9999px;
 
     --space-2xs: 0.25rem;
@@ -110,12 +110,14 @@
 
   .dashboard-header {
     @apply sticky top-0 z-20 border-b backdrop-blur-md;
+    border-bottom-left-radius: var(--radius-panel);
+    border-bottom-right-radius: var(--radius-panel);
     border-color: var(--border-soft);
     background-color: rgba(255, 255, 255, 0.88);
   }
 
   .dashboard-header-inner {
-    @apply mx-auto flex max-w-7xl items-center justify-between px-4 py-5;
+    @apply mx-auto flex max-w-7xl items-center justify-between px-5 py-6;
   }
 
   .dashboard-title {
@@ -129,11 +131,11 @@
   }
 
   .dashboard-content {
-    @apply mx-auto max-w-7xl px-4 py-6;
+    @apply mx-auto max-w-7xl px-5 py-8;
   }
 
   .dashboard-section {
-    @apply mb-8;
+    @apply mb-10;
   }
 
   .dashboard-section-title {
@@ -142,7 +144,7 @@
   }
 
   .dashboard-panel {
-    @apply border p-6;
+    @apply border p-7;
     border-radius: var(--radius-panel);
     border-color: var(--border-soft);
     background-color: var(--bg-panel);
