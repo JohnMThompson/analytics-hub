@@ -113,79 +113,76 @@ class DashboardRegistry:
     def _register_routes(self, dashboard: BaseDashboard) -> None:
         """
         Register routes for a dashboard.
-        
-        Automatically registers:
-        - GET /api/dashboards/{dashboard_id}/data
-        - Any method ending with _endpoint gets registered as a route
         """
         dashboard_id = dashboard.metadata.id
         
-        # Use a factory to properly capture the dashboard instance
-        def create_handler(dash):
-            async def get_dashboard_data():
-                """Get dashboard data"""
-                return await dash.get_data()
-            return get_dashboard_data
-        
-        # Register the main data route
-        route_path = f"/{dashboard_id}/data"
-        handler = create_handler(dashboard)
+        # Main data endpoint - use bound method directly
         self.router.add_api_route(
-            route_path,
-            handler,
+            f"/{dashboard_id}/data",
+            dashboard.get_data,
             methods=["GET"],
             name=f"{dashboard_id}_data"
         )
         
-        # Auto-register specific endpoints for swim dashboard
-        if dashboard.metadata.id == "swim_tracking":
-            if hasattr(dashboard, 'get_summary_endpoint'):
-                def create_summary_handler(dash):
-                    async def handler():
-                        return await dash.get_summary_endpoint()
-                    return handler
-                self.router.add_api_route(
-                    f"/{dashboard_id}/summary",
-                    create_summary_handler(dashboard),
-                    methods=["GET"],
-                    name=f"{dashboard_id}_summary"
-                )
+        # Mortgage-specific endpoints
+        if dashboard_id == "mortgage_rates":
+            self.router.add_api_route(
+                f"/{dashboard_id}/current_rate",
+                dashboard.get_current_rate_endpoint,
+                methods=["GET"],
+                name=f"{dashboard_id}_current_rate"
+            )
             
-            if hasattr(dashboard, 'get_distance_by_date_endpoint'):
-                def create_distance_handler(dash):
-                    async def handler(days: int = 365):
-                        return await dash.get_distance_by_date_endpoint(days=days)
-                    return handler
-                self.router.add_api_route(
-                    f"/{dashboard_id}/distance_by_date",
-                    create_distance_handler(dashboard),
-                    methods=["GET"],
-                    name=f"{dashboard_id}_distance_by_date"
-                )
+            self.router.add_api_route(
+                f"/{dashboard_id}/historical_rates",
+                dashboard.get_historical_endpoint,
+                methods=["GET"],
+                name=f"{dashboard_id}_historical_rates"
+            )
             
-            if hasattr(dashboard, 'get_records_endpoint'):
-                def create_records_handler(dash):
-                    async def handler(days: int = 365, limit: int = 50):
-                        return await dash.get_records_endpoint(days=days, limit=limit)
-                    return handler
-                self.router.add_api_route(
-                    f"/{dashboard_id}/records",
-                    create_records_handler(dashboard),
-                    methods=["GET"],
-                    name=f"{dashboard_id}_records"
-                )
+            self.router.add_api_route(
+                f"/{dashboard_id}/rate_comparison",
+                dashboard.get_rate_comparison_endpoint,
+                methods=["GET"],
+                name=f"{dashboard_id}_rate_comparison"
+            )
             
-            if hasattr(dashboard, 'get_stroke_breakdown_endpoint'):
-                def create_stroke_handler(dash):
-                    async def handler(days: int = 365):
-                        return await dash.get_stroke_breakdown_endpoint(days=days)
-                    return handler
-                self.router.add_api_route(
-                    f"/{dashboard_id}/stroke_breakdown",
-                    create_stroke_handler(dashboard),
-                    methods=["GET"],
-                    name=f"{dashboard_id}_stroke_breakdown"
-                )
+            self.router.add_api_route(
+                f"/{dashboard_id}/rate_statistics",
+                dashboard.get_rate_statistics_endpoint,
+                methods=["GET"],
+                name=f"{dashboard_id}_rate_statistics"
+            )
+        
+        # Swim-specific endpoints
+        elif dashboard_id == "swim_tracking":
+            self.router.add_api_route(
+                f"/{dashboard_id}/summary",
+                dashboard.get_summary_endpoint,
+                methods=["GET"],
+                name=f"{dashboard_id}_summary"
+            )
+            
+            self.router.add_api_route(
+                f"/{dashboard_id}/distance_by_date",
+                dashboard.get_distance_by_date_endpoint,
+                methods=["GET"],
+                name=f"{dashboard_id}_distance_by_date"
+            )
+            
+            self.router.add_api_route(
+                f"/{dashboard_id}/records",
+                dashboard.get_records_endpoint,
+                methods=["GET"],
+                name=f"{dashboard_id}_records"
+            )
+            
+            self.router.add_api_route(
+                f"/{dashboard_id}/stroke_breakdown",
+                dashboard.get_stroke_breakdown_endpoint,
+                methods=["GET"],
+                name=f"{dashboard_id}_stroke_breakdown"
+            )
     
     def get_metadata(self) -> List[Dict]:
         """Get metadata for all registered dashboards"""
@@ -199,6 +196,19 @@ class DashboardRegistry:
             }
             for dashboard in self.dashboards.values()
         ]
+
+
+# Global registry instance
+_registry: DashboardRegistry = None
+
+
+def get_registry() -> DashboardRegistry:
+    """Get or create the global dashboard registry"""
+    global _registry
+    if _registry is None:
+        _registry = DashboardRegistry()
+        _registry.discover_and_register()
+    return _registry
 
 
 # Global registry instance

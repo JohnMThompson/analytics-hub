@@ -10,9 +10,13 @@ import logging
 # Try relative imports first, fall back to backend.*
 try:
     from dashboards.registry import get_registry
+    from dashboards.mortgage import router as mortgage_router, set_mortgage_dashboard
+    from dashboards.swim import router as swim_router, set_swim_dashboard
     from config import close_all_connections
 except ImportError:
     from backend.dashboards.registry import get_registry
+    from backend.dashboards.mortgage import router as mortgage_router, set_mortgage_dashboard
+    from backend.dashboards.swim import router as swim_router, set_swim_dashboard
     from backend.config import close_all_connections
 
 logger = logging.getLogger(__name__)
@@ -31,21 +35,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-@app.on_event("startup")
-async def startup_event():
-    """Initialize dashboard registry on startup"""
-    registry = get_registry()
-    app.include_router(registry.router)
-    logger.info(f"Started with {len(registry.dashboards)} dashboards")
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Clean up connections on shutdown"""
-    close_all_connections()
-    logger.info("Closed all database connections")
 
 
 @app.get("/api/health")
@@ -69,6 +58,32 @@ async def list_dashboards():
         "dashboards": registry.get_metadata(),
         "total": len(registry.dashboards)
     }
+
+
+# Initialize registry and include routers
+registry = get_registry()
+
+# Set up dashboard instances for routers
+if "mortgage_rates" in registry.dashboards:
+    set_mortgage_dashboard(registry.dashboards["mortgage_rates"])
+    app.include_router(mortgage_router)
+
+if "swim_tracking" in registry.dashboards:
+    set_swim_dashboard(registry.dashboards["swim_tracking"])
+    app.include_router(swim_router)
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize database connections on startup"""
+    logger.info(f"Started with {len(registry.dashboards)} dashboards")
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Clean up connections on shutdown"""
+    close_all_connections()
+    logger.info("Closed all database connections")
 
 
 if __name__ == "__main__":

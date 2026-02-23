@@ -4,6 +4,7 @@ Swim Tracking Dashboard Module
 Provides swim tracking data from the swimming database.
 """
 from typing import Dict, Any
+from fastapi import APIRouter, Depends, Query
 
 # Handle both Docker (flat structure) and local (backend.* imports)
 try:
@@ -25,81 +26,115 @@ except ImportError:
         get_stroke_breakdown
     )
 
+# Create router for swim endpoints
+router = APIRouter(prefix="/api/dashboards/swim_tracking", tags=["swim"])
+
 
 class SwimTrackingDashboard(BaseDashboard):
     """
     Swim Tracking Dashboard
     
-    Shows swim statistics, daily distances, and individual workout records.
+    Shows swim workouts, distances, stroke breakdowns, and personal records.
     """
     
     metadata = DashboardMetadata(
         id="swim_tracking",
         title="Swim Tracking",
-        description="Personal swimming statistics and workout history",
-        refresh_interval=3600,  # 1 hour
-        colors={
-            "primary": "#0284c7",
-            "accent": "#06b6d4",
-            "success": "#10b981",
-            "danger": "#ef4444"
-        }
+        description="Personal swim workout tracking",
+        refresh_interval=3600,
+        colors={"primary": "#0891b2", "accent": "#06b6d4"}
     )
     
-    def __init__(self, db_config: Dict[str, Any]):
+    def __init__(self, db_config: Dict):
         super().__init__(db_config)
-        self.engine = get_db_engine("swim")
+        self.engine = get_db_engine(db_config)
     
     async def get_data(self) -> Dict[str, Any]:
-        """
-        Get all swim tracking data
-        
-        Returns:
-            Dictionary with summary, daily data, records, and stroke breakdown
-        """
+        """Get all swim data"""
         try:
-            summary = await get_swim_summary(self.engine, days=365)
-            daily = await get_distance_by_date(self.engine, days=365)
-            records = await get_swim_records(self.engine, days=365, limit=50)
-            strokes = await get_stroke_breakdown(self.engine, days=365)
-            
-            return {
-                "success": True,
-                "summary": summary,
-                "daily": daily,
-                "records": records,
-                "strokes": strokes,
-            }
+            summary = await get_swim_summary(self.engine)
+            return summary
         except Exception as e:
-            return {
-                "success": False,
-                "error": str(e)
-            }
+            return {"error": str(e)}
     
-    async def get_summary_endpoint(self) -> Dict[str, Any]:
-        """Get swim summary statistics"""
+    async def get_summary_endpoint(self, days: int = 365) -> Dict[str, Any]:
+        """Get swim summary for a time period"""
         try:
-            return await get_swim_summary(self.engine, days=365)
+            summary = await get_swim_summary(self.engine, days=days)
+            return summary
         except Exception as e:
             return {"error": str(e)}
     
     async def get_distance_by_date_endpoint(self, days: int = 365) -> Dict[str, Any]:
-        """Get daily distance data"""
+        """Get daily distances"""
         try:
-            return await get_distance_by_date(self.engine, days=days)
+            distance_data = await get_distance_by_date(self.engine, days=days)
+            return distance_data
         except Exception as e:
             return {"error": str(e)}
     
     async def get_records_endpoint(self, days: int = 365, limit: int = 50) -> Dict[str, Any]:
-        """Get individual swim records"""
+        """Get personal swimming records"""
         try:
-            return await get_swim_records(self.engine, days=days, limit=limit)
+            records = await get_swim_records(self.engine, days=days, limit=limit)
+            return records
         except Exception as e:
             return {"error": str(e)}
     
     async def get_stroke_breakdown_endpoint(self, days: int = 365) -> Dict[str, Any]:
         """Get stroke type breakdown"""
         try:
-            return await get_stroke_breakdown(self.engine, days=days)
+            breakdown = await get_stroke_breakdown(self.engine, days=days)
+            return breakdown
         except Exception as e:
             return {"error": str(e)}
+
+
+# Global instance for router
+_swim_dashboard: SwimTrackingDashboard = None
+
+def get_swim_dashboard() -> SwimTrackingDashboard:
+    """Dependency to inject swim dashboard"""
+    if _swim_dashboard is None:
+        raise ValueError("Swim dashboard not initialized")
+    return _swim_dashboard
+
+def set_swim_dashboard(dashboard: SwimTrackingDashboard):
+    """Set the global swim dashboard instance"""
+    global _swim_dashboard
+    _swim_dashboard = dashboard
+
+
+# Router endpoints using Depends to avoid closure issues
+@router.get("/data")
+async def swim_data(dashboard: SwimTrackingDashboard = Depends(get_swim_dashboard)):
+    return await dashboard.get_data()
+
+@router.get("/summary")
+async def swim_summary(
+    days: int = Query(365),
+    dashboard: SwimTrackingDashboard = Depends(get_swim_dashboard)
+):
+    return await dashboard.get_summary_endpoint(days=days)
+
+@router.get("/distance_by_date")
+async def swim_distance(
+    days: int = Query(365),
+    dashboard: SwimTrackingDashboard = Depends(get_swim_dashboard)
+):
+    return await dashboard.get_distance_by_date_endpoint(days=days)
+
+@router.get("/records")
+async def swim_records(
+    days: int = Query(365),
+    limit: int = Query(50),
+    dashboard: SwimTrackingDashboard = Depends(get_swim_dashboard)
+):
+    return await dashboard.get_records_endpoint(days=days, limit=limit)
+
+@router.get("/stroke_breakdown")
+async def swim_strokes(
+    days: int = Query(365),
+    dashboard: SwimTrackingDashboard = Depends(get_swim_dashboard)
+):
+    return await dashboard.get_stroke_breakdown_endpoint(days=days)
