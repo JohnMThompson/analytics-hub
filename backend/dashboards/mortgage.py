@@ -76,7 +76,7 @@ class MortgageRateDashboard(BaseDashboard):
         except Exception as e:
             self._raise_internal_error("current_rate", e)
     
-    async def get_historical_endpoint(self, days: int = 365) -> Dict[str, Any]:
+    async def get_historical_endpoint(self, days: int = 365) -> List[Dict[str, Any]]:
         """Get historical rates"""
         try:
             historical = await get_historical_rates(self.engine, days=days)
