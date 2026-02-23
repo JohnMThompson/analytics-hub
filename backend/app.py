@@ -3,8 +3,10 @@ FastAPI application initialization and dashboard registration
 """
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 import logging
 from contextlib import asynccontextmanager
+from sqlalchemy import text
 
 # In Docker, we're at /app with a flat structure (dashboards/, config.py, etc.)
 # Locally, we import from backend.*
@@ -54,6 +56,40 @@ async def health_check():
         "version": "0.1.0",
         "dashboards_count": len(registry.dashboards)
     }
+
+
+@app.get("/api/ready")
+async def readiness_check():
+    """Readiness check endpoint including per-dashboard DB connectivity."""
+    checks = {}
+    all_ready = True
+
+    for dashboard_id, dashboard in registry.dashboards.items():
+        engine = getattr(dashboard, "engine", None)
+        if engine is None:
+            checks[dashboard_id] = {
+                "ready": False,
+                "error": "No database engine configured"
+            }
+            all_ready = False
+            continue
+
+        try:
+            with engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+            checks[dashboard_id] = {"ready": True}
+        except Exception as error:
+            checks[dashboard_id] = {"ready": False, "error": str(error)}
+            all_ready = False
+
+    payload = {
+        "status": "ready" if all_ready else "not_ready",
+        "dashboards_count": len(registry.dashboards),
+        "checks": checks
+    }
+    if all_ready:
+        return payload
+    return JSONResponse(status_code=503, content=payload)
 
 
 @app.get("/api/dashboards")
