@@ -23,11 +23,11 @@ async def health():
     return {"status": "ok"}
 
 @app.get("/api/test/no_param")
-async def test_no_param():
+async def api_test_no_param():
     return {"test": "no_param"}
 
 @app.get("/api/test/with_param")
-async def test_with_param(days: int = 365):
+async def api_test_with_param(days: int = 365):
     return {"days": days}
 
 if __name__ == "__main__":
