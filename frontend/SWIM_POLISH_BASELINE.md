@@ -22,3 +22,16 @@
   3. Stroke composition (bar + pie/donut)
   4. Recent workouts table
 - Ensure all cards/panels feel distinct with clear boundaries and breathing room.
+
+## Completed implementation summary
+- Reframed section flow with narrative subtitles and clearer block hierarchy.
+- Upgraded top summary cards to contained KPI tiles with stronger visual hierarchy.
+- Standardized stroke snapshot cards to the same contained tile language.
+- Tuned chart readability (daily axis density/domain controls) and grouped stroke visuals.
+- Improved recent-workouts table readability (header contrast, row separators, hover, alignment).
+- Applied swim-specific tile theming while preserving shared reporting-package style.
+
+## Validation completed
+- Frontend tests: 6/6 passing via `npm test -- --run`.
+- Frontend production build passes via `npm run build`.
+- Remaining technical note: Vite chunk size warning persists (>500 kB), unchanged by this polish pass.
