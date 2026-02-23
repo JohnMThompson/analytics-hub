@@ -4,6 +4,7 @@ Swim Tracking Dashboard Module
 Provides swim tracking data from the swimming database.
 """
 from typing import Dict, Any, List
+from fastapi import HTTPException
 
 # Handle both Docker (flat structure) and local (backend.* imports)
 try:
@@ -43,6 +44,13 @@ class SwimTrackingDashboard(BaseDashboard):
     def __init__(self, db_config: Dict):
         super().__init__(db_config)
         self.engine = get_db_engine("swim")
+
+    def _raise_internal_error(self, operation: str, error: Exception) -> None:
+        """Raise a standardized API error for dashboard failures."""
+        raise HTTPException(
+            status_code=500,
+            detail=f"swim_tracking.{operation} failed: {error}"
+        )
     
     async def get_data(self) -> Dict[str, Any]:
         """Get all swim data"""
@@ -50,7 +58,7 @@ class SwimTrackingDashboard(BaseDashboard):
             summary = await get_swim_summary(self.engine)
             return summary
         except Exception as e:
-            return {"error": str(e)}
+            self._raise_internal_error("data", e)
     
     async def get_summary_endpoint(self, days: int = 365) -> Dict[str, Any]:
         """Get swim summary for a time period"""
@@ -58,7 +66,7 @@ class SwimTrackingDashboard(BaseDashboard):
             summary = await get_swim_summary(self.engine, days=days)
             return summary
         except Exception as e:
-            return {"error": str(e)}
+            self._raise_internal_error("summary", e)
     
     async def get_distance_by_date_endpoint(self, days: int = 365) -> Dict[str, Any]:
         """Get daily distances"""
@@ -66,7 +74,7 @@ class SwimTrackingDashboard(BaseDashboard):
             distance_data = await get_distance_by_date(self.engine, days=days)
             return distance_data
         except Exception as e:
-            return {"error": str(e)}
+            self._raise_internal_error("distance_by_date", e)
     
     async def get_records_endpoint(self, days: int = 365, limit: int = 50) -> Dict[str, Any]:
         """Get personal swimming records"""
@@ -74,7 +82,7 @@ class SwimTrackingDashboard(BaseDashboard):
             records = await get_swim_records(self.engine, days=days, limit=limit)
             return records
         except Exception as e:
-            return {"error": str(e)}
+            self._raise_internal_error("records", e)
     
     async def get_stroke_breakdown_endpoint(self, days: int = 365) -> Dict[str, Any]:
         """Get stroke type breakdown"""
@@ -82,7 +90,7 @@ class SwimTrackingDashboard(BaseDashboard):
             breakdown = await get_stroke_breakdown(self.engine, days=days)
             return breakdown
         except Exception as e:
-            return {"error": str(e)}
+            self._raise_internal_error("stroke_breakdown", e)
 
     def get_custom_routes(self) -> List[Dict[str, Any]]:
         """Define swim dashboard-specific routes."""

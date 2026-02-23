@@ -4,6 +4,7 @@ Mortgage Rates Dashboard Module
 Provides current and historical mortgage rate data from the mortgage database.
 """
 from typing import Dict, Any, List
+from fastapi import HTTPException
 
 # Handle both Docker (flat structure) and local (backend.* imports)
 try:
@@ -43,6 +44,13 @@ class MortgageRateDashboard(BaseDashboard):
     def __init__(self, db_config: Dict):
         super().__init__(db_config)
         self.engine = get_db_engine("mortgage")
+
+    def _raise_internal_error(self, operation: str, error: Exception) -> None:
+        """Raise a standardized API error for dashboard failures."""
+        raise HTTPException(
+            status_code=500,
+            detail=f"mortgage_rates.{operation} failed: {error}"
+        )
     
     async def get_data(self) -> Dict[str, Any]:
         """Get all data for this dashboard"""
@@ -54,7 +62,7 @@ class MortgageRateDashboard(BaseDashboard):
                 "historical_rates": historical
             }
         except Exception as e:
-            return {"error": str(e)}
+            self._raise_internal_error("data", e)
     
     async def get_current_rate_endpoint(self) -> Dict[str, Any]:
         """Get current mortgage rate"""
@@ -62,7 +70,7 @@ class MortgageRateDashboard(BaseDashboard):
             current = await get_current_rate(self.engine)
             return current
         except Exception as e:
-            return {"error": str(e)}
+            self._raise_internal_error("current_rate", e)
     
     async def get_historical_endpoint(self, days: int = 365) -> Dict[str, Any]:
         """Get historical rates"""
@@ -70,7 +78,7 @@ class MortgageRateDashboard(BaseDashboard):
             historical = await get_historical_rates(self.engine, days=days)
             return historical
         except Exception as e:
-            return {"error": str(e)}
+            self._raise_internal_error("historical_rates", e)
     
     async def get_rate_comparison_endpoint(self, days: int = 365) -> Dict[str, Any]:
         """Get rate comparison data"""
@@ -78,7 +86,7 @@ class MortgageRateDashboard(BaseDashboard):
             comparison = await get_rate_comparison(self.engine, days=days)
             return comparison
         except Exception as e:
-            return {"error": str(e)}
+            self._raise_internal_error("rate_comparison", e)
     
     async def get_rate_statistics_endpoint(self, days: int = 365) -> Dict[str, Any]:
         """Get rate statistics"""
@@ -86,7 +94,7 @@ class MortgageRateDashboard(BaseDashboard):
             statistics = await get_rate_statistics(self.engine, days=days)
             return statistics
         except Exception as e:
-            return {"error": str(e)}
+            self._raise_internal_error("rate_statistics", e)
 
     def get_custom_routes(self) -> List[Dict[str, Any]]:
         """Define mortgage dashboard-specific routes."""
