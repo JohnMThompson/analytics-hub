@@ -17,8 +17,6 @@ import {
 import {
   BarChartPanel,
   ColumnChartPanel,
-  DonutChartPanel,
-  PieChartPanel,
 } from '../components/charts';
 import DataTable from '../components/table';
 import { formatDecimal, formatDurationHours, formatInteger } from '../utils/formatters';
@@ -81,6 +79,33 @@ export default function SwimTracking() {
       { stroke: 'Butterfly', yards: strokes.butterfly || 0 },
     ]
     : [];
+  const filledDailyData = (() => {
+    if (!Array.isArray(dailyData) || dailyData.length === 0) return [];
+
+    const sorted = [...dailyData]
+      .filter((entry) => entry?.date)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    if (sorted.length === 0) return [];
+
+    const byDate = new Map(sorted.map((entry) => [entry.date, entry]));
+    const start = new Date(`${sorted[0].date}T00:00:00`);
+    const end = new Date(`${sorted[sorted.length - 1].date}T00:00:00`);
+
+    const expanded = [];
+    const cursor = new Date(start);
+    while (cursor <= end) {
+      const key = cursor.toISOString().slice(0, 10);
+      const existing = byDate.get(key);
+      expanded.push({
+        date: key,
+        total_yards: existing?.total_yards ?? 0,
+        workout_count: existing?.workout_count ?? 0,
+      });
+      cursor.setDate(cursor.getDate() + 1);
+    }
+
+    return expanded;
+  })();
   const timeframeLabel = 'Last 365 days';
 
   const recentWorkoutColumns = [
@@ -117,7 +142,7 @@ export default function SwimTracking() {
   ];
   const averageYardsPerWorkout = summary?.workout_count ? Math.round((summary.total_yards || 0) / summary.workout_count) : 0;
   const averageMinutesPerWorkout = summary?.workout_count ? Math.round(((summary.total_hours || 0) * 60) / summary.workout_count) : 0;
-  const dailyAxisInterval = Math.max(0, Math.floor(dailyData.length / 8));
+  const dailyAxisInterval = Math.max(0, Math.floor(filledDailyData.length / 8));
 
   return (
     <DashboardLayout
@@ -201,13 +226,13 @@ export default function SwimTracking() {
         )}
 
         {/* Daily Distance Chart */}
-        {dailyData.length > 0 && (
+        {filledDailyData.length > 0 && (
           <DashboardSection
             title="Distance Trend"
             subtitle={`${timeframeLabel} daily distance (yards).`}
           >
             <ColumnChartPanel
-              data={dailyData}
+              data={filledDailyData}
               xKey="date"
               bars={[{ dataKey: 'total_yards', name: 'Distance (yards)', color: 'var(--chart-4)' }]}
               height={400}
@@ -256,8 +281,8 @@ export default function SwimTracking() {
             title="Stroke Composition Visuals"
             subtitle="Ranked and proportional views of total distance by stroke."
           >
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-              <div className="xl:col-span-2">
+            <div className="grid grid-cols-1 gap-6">
+              <div>
               <BarChartPanel
                 data={strokeDistribution}
                 yKey="stroke"
@@ -268,22 +293,6 @@ export default function SwimTracking() {
                 valueFormatter={(value) => `${formatInteger(value)} yards`}
                 labelFormatter={(stroke) => `Stroke: ${stroke}`}
               />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-1 gap-6">
-                <PieChartPanel
-                  data={strokeDistribution}
-                  dataKey="yards"
-                  nameKey="stroke"
-                  height={200}
-                  valueFormatter={(value) => `${formatInteger(value)} yards`}
-                />
-                <DonutChartPanel
-                  data={strokeDistribution}
-                  dataKey="yards"
-                  nameKey="stroke"
-                  height={200}
-                  valueFormatter={(value) => `${formatInteger(value)} yards`}
-                />
               </div>
             </div>
           </DashboardSection>
