@@ -135,6 +135,17 @@ npm run dev
 
 Frontend runs on http://localhost:3000
 
+### CI/CD
+
+GitHub Actions runs CI on every pull request and on pushes to `main`.
+
+Current CI checks:
+- Backend tests: `cd backend && python3 -m pytest -q`
+- Frontend production build: `cd frontend && npm ci && npm run build`
+
+Planned later (not implemented yet):
+- Automatic deployment from `main` after CI passes
+
 ### Running Tests
 
 ```bash
