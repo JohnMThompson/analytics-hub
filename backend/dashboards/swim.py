@@ -4,7 +4,6 @@ Swim Tracking Dashboard Module
 Provides swim tracking data from the swimming database.
 """
 from typing import Dict, Any, List
-from fastapi import APIRouter, Depends, Query
 
 # Handle both Docker (flat structure) and local (backend.* imports)
 try:
@@ -25,10 +24,6 @@ except ImportError:
         get_swim_records,
         get_stroke_breakdown
     )
-
-# Create router for swim endpoints
-router = APIRouter(prefix="/api/dashboards/swim_tracking", tags=["swim"])
-
 
 class SwimTrackingDashboard(BaseDashboard):
     """
@@ -97,53 +92,3 @@ class SwimTrackingDashboard(BaseDashboard):
             {"path": "records", "endpoint": self.get_records_endpoint},
             {"path": "stroke_breakdown", "endpoint": self.get_stroke_breakdown_endpoint},
         ]
-
-
-# Global instance for router
-_swim_dashboard: SwimTrackingDashboard = None
-
-def get_swim_dashboard() -> SwimTrackingDashboard:
-    """Dependency to inject swim dashboard"""
-    if _swim_dashboard is None:
-        raise ValueError("Swim dashboard not initialized")
-    return _swim_dashboard
-
-def set_swim_dashboard(dashboard: SwimTrackingDashboard):
-    """Set the global swim dashboard instance"""
-    global _swim_dashboard
-    _swim_dashboard = dashboard
-
-
-# Router endpoints using Depends to avoid closure issues
-@router.get("/data")
-async def swim_data(dashboard: SwimTrackingDashboard = Depends(get_swim_dashboard)):
-    return await dashboard.get_data()
-
-@router.get("/summary")
-async def swim_summary(
-    days: int = Query(365),
-    dashboard: SwimTrackingDashboard = Depends(get_swim_dashboard)
-):
-    return await dashboard.get_summary_endpoint(days=days)
-
-@router.get("/distance_by_date")
-async def swim_distance(
-    days: int = Query(365),
-    dashboard: SwimTrackingDashboard = Depends(get_swim_dashboard)
-):
-    return await dashboard.get_distance_by_date_endpoint(days=days)
-
-@router.get("/records")
-async def swim_records(
-    days: int = Query(365),
-    limit: int = Query(50),
-    dashboard: SwimTrackingDashboard = Depends(get_swim_dashboard)
-):
-    return await dashboard.get_records_endpoint(days=days, limit=limit)
-
-@router.get("/stroke_breakdown")
-async def swim_strokes(
-    days: int = Query(365),
-    dashboard: SwimTrackingDashboard = Depends(get_swim_dashboard)
-):
-    return await dashboard.get_stroke_breakdown_endpoint(days=days)
