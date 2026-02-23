@@ -198,8 +198,8 @@ DB_MORTGAGE_NAME=
 ENVIRONMENT=development
 DEBUG=true
 
-# Frontend
-REACT_APP_API_URL=http://localhost:8000
+# Frontend (optional for local dev; required for Docker image builds)
+VITE_API_URL=http://localhost:8000
 ```
 
 ## Troubleshooting
@@ -211,7 +211,7 @@ REACT_APP_API_URL=http://localhost:8000
 
 ### Frontend can't reach backend API
 - Verify backend is running on http://localhost:8000
-- Check `REACT_APP_API_URL` in environment
+- Check `VITE_API_URL` in environment/build args
 - Check browser console for CORS errors
 
 ### Docker Compose issues
