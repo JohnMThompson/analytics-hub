@@ -136,7 +136,7 @@ export default function SwimTracking() {
             subtitle={`${timeframeLabel} summary across workouts, time, and distance.`}
           >
             <KpiGrid columns={4}>
-              <Card className="kpi-focus-card p-0">
+              <Card className="kpi-focus-card swim-kpi p-0">
                 <div className="min-h-[220px] flex flex-col text-center">
                   <div className="px-5 pt-4 pb-3 border-b" style={{ borderColor: 'var(--border-soft)' }}>
                     <p className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>Total Workouts</p>
@@ -150,7 +150,7 @@ export default function SwimTracking() {
                   </div>
                 </div>
               </Card>
-              <Card className="kpi-focus-card p-0">
+              <Card className="kpi-focus-card swim-kpi p-0">
                 <div className="min-h-[220px] flex flex-col text-center">
                   <div className="px-5 pt-4 pb-3 border-b" style={{ borderColor: 'var(--border-soft)' }}>
                     <p className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>Total Distance</p>
@@ -166,7 +166,7 @@ export default function SwimTracking() {
                   </div>
                 </div>
               </Card>
-              <Card className="kpi-focus-card p-0">
+              <Card className="kpi-focus-card swim-kpi p-0">
                 <div className="min-h-[220px] flex flex-col text-center">
                   <div className="px-5 pt-4 pb-3 border-b" style={{ borderColor: 'var(--border-soft)' }}>
                     <p className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>Total Time</p>
@@ -182,7 +182,7 @@ export default function SwimTracking() {
                   </div>
                 </div>
               </Card>
-              <Card className="kpi-focus-card p-0">
+              <Card className="kpi-focus-card swim-kpi p-0">
                 <div className="min-h-[220px] flex flex-col text-center">
                   <div className="px-5 pt-4 pb-3 border-b" style={{ borderColor: 'var(--border-soft)' }}>
                     <p className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>Total Yards</p>
@@ -226,22 +226,22 @@ export default function SwimTracking() {
             subtitle={`${timeframeLabel} total distance by stroke type.`}
           >
             <KpiGrid columns={4}>
-              <Card className="kpi-focus-card p-6 text-center">
+              <Card className="kpi-focus-card swim-kpi p-6 text-center">
                 <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>Freestyle</p>
                 <p className="text-4xl font-bold" style={{ color: 'var(--text-primary)' }}>{formatInteger(strokes.freestyle)}</p>
                 <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>yards</p>
               </Card>
-              <Card className="kpi-focus-card p-6 text-center">
+              <Card className="kpi-focus-card swim-kpi p-6 text-center">
                 <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>Backstroke</p>
                 <p className="text-4xl font-bold" style={{ color: 'var(--text-primary)' }}>{formatInteger(strokes.backstroke)}</p>
                 <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>yards</p>
               </Card>
-              <Card className="kpi-focus-card p-6 text-center">
+              <Card className="kpi-focus-card swim-kpi p-6 text-center">
                 <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>Breaststroke</p>
                 <p className="text-4xl font-bold" style={{ color: 'var(--text-primary)' }}>{formatInteger(strokes.breaststroke)}</p>
                 <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>yards</p>
               </Card>
-              <Card className="kpi-focus-card p-6 text-center">
+              <Card className="kpi-focus-card swim-kpi p-6 text-center">
                 <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>Butterfly</p>
                 <p className="text-4xl font-bold" style={{ color: 'var(--text-primary)' }}>{formatInteger(strokes.butterfly)}</p>
                 <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>yards</p>
