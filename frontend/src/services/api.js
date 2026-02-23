@@ -3,14 +3,14 @@
  * Centralized HTTP client for all backend API calls
  */
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+const API_URL = (import.meta.env.VITE_API_URL || '').trim();
 
 const apiClient = {
   /**
    * Generic fetch wrapper with error handling
    */
   async request(endpoint, options = {}) {
-    const url = `${API_URL}${endpoint}`;
+    const url = API_URL ? `${API_URL}${endpoint}` : endpoint;
     try {
       const response = await fetch(url, {
         headers: {

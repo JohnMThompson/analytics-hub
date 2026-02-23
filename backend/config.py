@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     db_swim_port: int = 3306
     
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=(".env", "../.env"),
         case_sensitive=False,
         extra="ignore"  # Allow extra fields from .env
     )
@@ -43,6 +43,30 @@ settings = Settings()
 
 # Connection pool cache
 _engines: Dict[str, Engine] = {}
+
+
+def _validate_required_settings(database: str) -> None:
+    """Validate required DB settings for a given database key."""
+    if database == "mortgage":
+        required = {
+            "DB_MORTGAGE_HOST": settings.db_mortgage_host,
+            "DB_MORTGAGE_USER": settings.db_mortgage_user,
+            "DB_MORTGAGE_NAME": settings.db_mortgage_name,
+        }
+    elif database == "swim":
+        required = {
+            "DB_SWIM_HOST": settings.db_swim_host,
+            "DB_SWIM_USER": settings.db_swim_user,
+            "DB_SWIM_NAME": settings.db_swim_name,
+        }
+    else:
+        raise ValueError(f"Unknown database: {database}")
+
+    missing = [name for name, value in required.items() if not value]
+    if missing:
+        raise ValueError(
+            f"{database} database credentials not configured: missing {', '.join(missing)}"
+        )
 
 
 def get_db_connection_string(database: str) -> str:
@@ -56,6 +80,7 @@ def get_db_connection_string(database: str) -> str:
         SQLAlchemy-compatible connection string
     """
     if database == "mortgage":
+        _validate_required_settings("mortgage")
         return (
             f"mysql+pymysql://{settings.db_mortgage_user}:"
             f"{settings.db_mortgage_password}@"
@@ -63,8 +88,7 @@ def get_db_connection_string(database: str) -> str:
             f"{settings.db_mortgage_name}"
         )
     elif database == "swim":
-        if not all([settings.db_swim_host, settings.db_swim_user, settings.db_swim_name]):
-            raise ValueError("Swim database credentials not configured")
+        _validate_required_settings("swim")
         return (
             f"mysql+pymysql://{settings.db_swim_user}:"
             f"{settings.db_swim_password}@"

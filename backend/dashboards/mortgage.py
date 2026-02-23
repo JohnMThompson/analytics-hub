@@ -47,7 +47,7 @@ class MortgageRateDashboard(BaseDashboard):
     
     def __init__(self, db_config: Dict):
         super().__init__(db_config)
-        self.engine = get_db_engine(db_config)
+        self.engine = get_db_engine("mortgage")
     
     async def get_data(self) -> Dict[str, Any]:
         """Get all data for this dashboard"""
