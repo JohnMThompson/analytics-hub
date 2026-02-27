@@ -91,8 +91,13 @@ export default function SwimTracking() {
       { stroke: 'Backstroke', yards: strokes.backstroke || 0 },
       { stroke: 'Breaststroke', yards: strokes.breaststroke || 0 },
       { stroke: 'Butterfly', yards: strokes.butterfly || 0 },
-    ]
+    ].sort((a, b) => b.yards - a.yards)
     : [];
+  const totalStrokeYards = strokeDistribution.reduce((sum, stroke) => sum + stroke.yards, 0);
+  const getStrokePercent = (yards) => {
+    if (!totalStrokeYards) return '0.0%';
+    return `${((yards / totalStrokeYards) * 100).toFixed(1)}%`;
+  };
   const filledDailyData = (() => {
     if (!Array.isArray(dailyData) || dailyData.length === 0) return [];
 
@@ -235,7 +240,6 @@ export default function SwimTracking() {
                           {formatInteger(summary.workout_count)}
                         </p>
                         <p className="mt-2 text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>sessions</p>
-                        <p className="mt-5 text-xs" style={{ color: 'var(--text-muted)' }}>Avg duration: {averageMinutesPerWorkout} min</p>
                       </div>
                     </div>
                   </Card>
@@ -332,7 +336,7 @@ export default function SwimTracking() {
             {/* Stroke Breakdown KPIs */}
             {strokeDistribution.length > 0 && (
               <DashboardSection
-                title="Stroke Composition Snapshot"
+                title="Stroke Composition Summary"
                 subtitle={`${timeframeLabel} total distance by stroke type.`}
               >
                 <KpiGrid columns={4}>
@@ -340,45 +344,42 @@ export default function SwimTracking() {
                     <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>Freestyle</p>
                     <p className="text-4xl font-bold" style={{ color: 'var(--text-primary)' }}>{formatInteger(strokes.freestyle)}</p>
                     <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>yards</p>
+                    <p className="text-xs mt-2 font-semibold" style={{ color: 'var(--text-secondary)' }}>{getStrokePercent(strokes.freestyle || 0)} of total</p>
                   </Card>
                   <Card className="kpi-focus-card swim-kpi p-6 text-center">
                     <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>Backstroke</p>
                     <p className="text-4xl font-bold" style={{ color: 'var(--text-primary)' }}>{formatInteger(strokes.backstroke)}</p>
                     <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>yards</p>
+                    <p className="text-xs mt-2 font-semibold" style={{ color: 'var(--text-secondary)' }}>{getStrokePercent(strokes.backstroke || 0)} of total</p>
                   </Card>
                   <Card className="kpi-focus-card swim-kpi p-6 text-center">
                     <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>Breaststroke</p>
                     <p className="text-4xl font-bold" style={{ color: 'var(--text-primary)' }}>{formatInteger(strokes.breaststroke)}</p>
                     <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>yards</p>
+                    <p className="text-xs mt-2 font-semibold" style={{ color: 'var(--text-secondary)' }}>{getStrokePercent(strokes.breaststroke || 0)} of total</p>
                   </Card>
                   <Card className="kpi-focus-card swim-kpi p-6 text-center">
                     <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>Butterfly</p>
                     <p className="text-4xl font-bold" style={{ color: 'var(--text-primary)' }}>{formatInteger(strokes.butterfly)}</p>
                     <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>yards</p>
+                    <p className="text-xs mt-2 font-semibold" style={{ color: 'var(--text-secondary)' }}>{getStrokePercent(strokes.butterfly || 0)} of total</p>
                   </Card>
                 </KpiGrid>
-              </DashboardSection>
-            )}
-
-            {/* Bar / Pie / Donut Charts */}
-            {strokeDistribution.length > 0 && (
-              <DashboardSection
-                title="Stroke Composition Visuals"
-                subtitle="Ranked and proportional views of total distance by stroke."
-              >
-                <div className="grid grid-cols-1 gap-6">
-                  <div>
-                    <BarChartPanel
-                      data={strokeDistribution}
-                      yKey="stroke"
-                      barKey="yards"
-                      barName="Distance (yards)"
-                      yAxisWidth={120}
-                      height={420}
-                      valueFormatter={(value) => `${formatInteger(value)} yards`}
-                      labelFormatter={(stroke) => `Stroke: ${stroke}`}
-                    />
-                  </div>
+                <div className="mt-6">
+                  <BarChartPanel
+                    data={strokeDistribution}
+                    yKey="stroke"
+                    barKey="yards"
+                    barName="Distance (yards)"
+                    yAxisWidth={120}
+                    height={420}
+                    hideXAxis
+                    showBarValueLabels
+                    showLegend={false}
+                    chartRightMargin={140}
+                    valueFormatter={(value) => `${formatInteger(value)} yards`}
+                    labelFormatter={(stroke) => `Stroke: ${stroke}`}
+                  />
                 </div>
               </DashboardSection>
             )}
