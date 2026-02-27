@@ -2,28 +2,30 @@
 Reusable SQL query functions for swim tracking dashboard
 """
 from sqlalchemy import text, Engine
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta
 
 
-async def get_swim_summary(engine: Engine, days: int = 365) -> Dict[str, Any]:
+async def get_swim_summary(engine: Engine, days: Optional[int] = 365) -> Dict[str, Any]:
     """
     Get summary statistics for swimming over the specified period.
     
     Returns:
         Dict with total miles, workout count, total hours
     """
-    query = text("""
+    where_clause = "WHERE start_date_time >= DATE_SUB(NOW(), INTERVAL :days DAY)" if days is not None else ""
+    query = text(f"""
         SELECT 
             COUNT(*) as workout_count,
             SUM(total_distance_yards) as total_yards,
             SUM(duration) as total_minutes
         FROM swim_tracking
-        WHERE start_date_time >= DATE_SUB(NOW(), INTERVAL :days DAY)
+        {where_clause}
     """)
     
     with engine.connect() as conn:
-        result = conn.execute(query, {"days": days}).fetchone()
+        params = {"days": days} if days is not None else {}
+        result = conn.execute(query, params).fetchone()
         
         if result and result[0]:
             total_yards = float(result[1]) if result[1] else 0
@@ -45,7 +47,7 @@ async def get_swim_summary(engine: Engine, days: int = 365) -> Dict[str, Any]:
         }
 
 
-async def get_distance_by_date(engine: Engine, days: int = 365) -> List[Dict[str, Any]]:
+async def get_distance_by_date(engine: Engine, days: Optional[int] = 365) -> List[Dict[str, Any]]:
     """
     Get daily swimming distance for the specified period.
     
@@ -56,19 +58,21 @@ async def get_distance_by_date(engine: Engine, days: int = 365) -> List[Dict[str
     Returns:
         List of daily distance records
     """
-    query = text("""
+    where_clause = "WHERE start_date_time >= DATE_SUB(NOW(), INTERVAL :days DAY)" if days is not None else ""
+    query = text(f"""
         SELECT 
             DATE(start_date_time) as date,
             SUM(total_distance_yards) as total_yards,
             COUNT(*) as workout_count
         FROM swim_tracking
-        WHERE start_date_time >= DATE_SUB(NOW(), INTERVAL :days DAY)
+        {where_clause}
         GROUP BY DATE(start_date_time)
         ORDER BY date ASC
     """)
     
     with engine.connect() as conn:
-        results = conn.execute(query, {"days": days}).fetchall()
+        params = {"days": days} if days is not None else {}
+        results = conn.execute(query, params).fetchall()
         return [
             {
                 "date": result[0].isoformat() if result[0] else None,
@@ -79,7 +83,7 @@ async def get_distance_by_date(engine: Engine, days: int = 365) -> List[Dict[str
         ]
 
 
-async def get_swim_records(engine: Engine, days: int = 365, limit: int = 50) -> List[Dict[str, Any]]:
+async def get_swim_records(engine: Engine, days: Optional[int] = 365, limit: int = 50) -> List[Dict[str, Any]]:
     """
     Get individual swim records for the specified period.
     
@@ -91,7 +95,8 @@ async def get_swim_records(engine: Engine, days: int = 365, limit: int = 50) -> 
     Returns:
         List of swim records with details
     """
-    query = text("""
+    where_clause = "WHERE start_date_time >= DATE_SUB(NOW(), INTERVAL :days DAY)" if days is not None else ""
+    query = text(f"""
         SELECT 
             id,
             start_date_time,
@@ -103,13 +108,16 @@ async def get_swim_records(engine: Engine, days: int = 365, limit: int = 50) -> 
             butterfly_distance,
             comments
         FROM swim_tracking
-        WHERE start_date_time >= DATE_SUB(NOW(), INTERVAL :days DAY)
+        {where_clause}
         ORDER BY start_date_time DESC
         LIMIT :limit
     """)
     
     with engine.connect() as conn:
-        results = conn.execute(query, {"days": days, "limit": limit}).fetchall()
+        params = {"limit": limit}
+        if days is not None:
+            params["days"] = days
+        results = conn.execute(query, params).fetchall()
         return [
             {
                 "id": result[0],
@@ -126,7 +134,7 @@ async def get_swim_records(engine: Engine, days: int = 365, limit: int = 50) -> 
         ]
 
 
-async def get_stroke_breakdown(engine: Engine, days: int = 365) -> Dict[str, Any]:
+async def get_stroke_breakdown(engine: Engine, days: Optional[int] = 365) -> Dict[str, Any]:
     """
     Get breakdown of distance by stroke type for the specified period.
     
@@ -137,18 +145,20 @@ async def get_stroke_breakdown(engine: Engine, days: int = 365) -> Dict[str, Any
     Returns:
         Summary of distance by stroke
     """
-    query = text("""
+    where_clause = "WHERE start_date_time >= DATE_SUB(NOW(), INTERVAL :days DAY)" if days is not None else ""
+    query = text(f"""
         SELECT 
             SUM(freestyle_distance) as freestyle,
             SUM(backstroke_distance) as backstroke,
             SUM(breaststroke_distance) as breaststroke,
             SUM(butterfly_distance) as butterfly
         FROM swim_tracking
-        WHERE start_date_time >= DATE_SUB(NOW(), INTERVAL :days DAY)
+        {where_clause}
     """)
     
     with engine.connect() as conn:
-        result = conn.execute(query, {"days": days}).fetchone()
+        params = {"days": days} if days is not None else {}
+        result = conn.execute(query, params).fetchone()
         
         return {
             "freestyle": int(result[0]) if result[0] else 0,

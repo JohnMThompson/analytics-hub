@@ -3,7 +3,7 @@ Swim Tracking Dashboard Module
 
 Provides swim tracking data from the swimming database.
 """
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from fastapi import HTTPException
 import logging
 
@@ -64,34 +64,38 @@ class SwimTrackingDashboard(BaseDashboard):
         except Exception as e:
             self._raise_internal_error("data", e)
     
-    async def get_summary_endpoint(self, days: int = 365) -> Dict[str, Any]:
+    async def get_summary_endpoint(self, days: int = 365, all_time: bool = False) -> Dict[str, Any]:
         """Get swim summary for a time period"""
         try:
-            summary = await get_swim_summary(self.engine, days=days)
+            days_filter: Optional[int] = None if all_time else days
+            summary = await get_swim_summary(self.engine, days=days_filter)
             return summary
         except Exception as e:
             self._raise_internal_error("summary", e)
     
-    async def get_distance_by_date_endpoint(self, days: int = 365) -> List[Dict[str, Any]]:
+    async def get_distance_by_date_endpoint(self, days: int = 365, all_time: bool = False) -> List[Dict[str, Any]]:
         """Get daily distances"""
         try:
-            distance_data = await get_distance_by_date(self.engine, days=days)
+            days_filter: Optional[int] = None if all_time else days
+            distance_data = await get_distance_by_date(self.engine, days=days_filter)
             return distance_data
         except Exception as e:
             self._raise_internal_error("distance_by_date", e)
     
-    async def get_records_endpoint(self, days: int = 365, limit: int = 50) -> List[Dict[str, Any]]:
+    async def get_records_endpoint(self, days: int = 365, limit: int = 50, all_time: bool = False) -> List[Dict[str, Any]]:
         """Get personal swimming records"""
         try:
-            records = await get_swim_records(self.engine, days=days, limit=limit)
+            days_filter: Optional[int] = None if all_time else days
+            records = await get_swim_records(self.engine, days=days_filter, limit=limit)
             return records
         except Exception as e:
             self._raise_internal_error("records", e)
     
-    async def get_stroke_breakdown_endpoint(self, days: int = 365) -> Dict[str, Any]:
+    async def get_stroke_breakdown_endpoint(self, days: int = 365, all_time: bool = False) -> Dict[str, Any]:
         """Get stroke type breakdown"""
         try:
-            breakdown = await get_stroke_breakdown(self.engine, days=days)
+            days_filter: Optional[int] = None if all_time else days
+            breakdown = await get_stroke_breakdown(self.engine, days=days_filter)
             return breakdown
         except Exception as e:
             self._raise_internal_error("stroke_breakdown", e)

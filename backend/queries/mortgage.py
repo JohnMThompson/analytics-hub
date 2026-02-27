@@ -2,7 +2,7 @@
 Reusable SQL query functions for mortgage rates dashboard
 """
 from sqlalchemy import text, Engine
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta
 
 
@@ -56,7 +56,7 @@ async def get_current_rate(engine: Engine) -> Dict[str, Any]:
         return {}
 
 
-async def get_historical_rates(engine: Engine, days: int = 365) -> List[Dict[str, Any]]:
+async def get_historical_rates(engine: Engine, days: Optional[int] = 365) -> List[Dict[str, Any]]:
     """
     Get historical mortgage rates for the specified number of days.
     Includes effective rates (rate + points * 0.25).
@@ -68,7 +68,8 @@ async def get_historical_rates(engine: Engine, days: int = 365) -> List[Dict[str
     Returns:
         List of rate records with effective rates
     """
-    query = text("""
+    where_clause = "WHERE timestamp >= DATE_SUB(NOW(), INTERVAL :days DAY)" if days is not None else ""
+    query = text(f"""
         SELECT 
             DATE(timestamp) as date,
             AVG(`30_year_fixed_rate`) as rate_30yr,
@@ -76,13 +77,14 @@ async def get_historical_rates(engine: Engine, days: int = 365) -> List[Dict[str
             AVG(`71_arm_rate`) as rate_7arm,
             AVG(`71_arm_point`) as points_7arm
         FROM daily_rates
-        WHERE timestamp >= DATE_SUB(NOW(), INTERVAL :days DAY)
+        {where_clause}
         GROUP BY DATE(timestamp)
         ORDER BY date ASC
     """)
     
     with engine.connect() as conn:
-        results = conn.execute(query, {"days": days}).fetchall()
+        params = {"days": days} if days is not None else {}
+        results = conn.execute(query, params).fetchall()
         return [
             {
                 "date": result[0].isoformat() if result[0] else None,
@@ -97,12 +99,13 @@ async def get_historical_rates(engine: Engine, days: int = 365) -> List[Dict[str
         ]
 
 
-async def get_weekly_rates(engine: Engine, days: int = 365) -> List[Dict[str, Any]]:
+async def get_weekly_rates(engine: Engine, days: Optional[int] = 365) -> List[Dict[str, Any]]:
     """
     Get weekly-average mortgage rates for the specified number of days.
     Weekly values are averaged per ISO week with effective rates included.
     """
-    query = text("""
+    where_clause = "WHERE timestamp >= DATE_SUB(NOW(), INTERVAL :days DAY)" if days is not None else ""
+    query = text(f"""
         SELECT
             MIN(DATE_SUB(DATE(timestamp), INTERVAL WEEKDAY(timestamp) DAY)) as week_start,
             AVG(`30_year_fixed_rate`) as rate_30yr,
@@ -112,13 +115,14 @@ async def get_weekly_rates(engine: Engine, days: int = 365) -> List[Dict[str, An
             AVG(`30_year_fixed_rate` + (COALESCE(`30_year_fixed_points`, 0) * 0.25)) as effective_rate_30yr,
             AVG(`71_arm_rate` + (COALESCE(`71_arm_point`, 0) * 0.25)) as effective_rate_7arm
         FROM daily_rates
-        WHERE timestamp >= DATE_SUB(NOW(), INTERVAL :days DAY)
+        {where_clause}
         GROUP BY YEAR(timestamp), WEEK(timestamp, 1)
         ORDER BY week_start ASC
     """)
 
     with engine.connect() as conn:
-        results = conn.execute(query, {"days": days}).fetchall()
+        params = {"days": days} if days is not None else {}
+        results = conn.execute(query, params).fetchall()
         return [
             {
                 "week_start": result[0].isoformat() if result[0] else None,
@@ -133,7 +137,7 @@ async def get_weekly_rates(engine: Engine, days: int = 365) -> List[Dict[str, An
         ]
 
 
-async def get_rate_comparison(engine: Engine, days: int = 365) -> Dict[str, Any]:
+async def get_rate_comparison(engine: Engine, days: Optional[int] = 365) -> Dict[str, Any]:
     """
     Get rate comparison: current vs previous period (using effective rates).
     
@@ -151,16 +155,21 @@ async def get_rate_comparison(engine: Engine, days: int = 365) -> Dict[str, Any]
         LIMIT 1
     """)
     
-    previous_query = text("""
+    previous_where = (
+        "WHERE timestamp >= DATE_SUB(NOW(), INTERVAL :days DAY) AND timestamp < DATE_SUB(NOW(), INTERVAL 7 DAY)"
+        if days is not None
+        else "WHERE timestamp < DATE_SUB(NOW(), INTERVAL 7 DAY)"
+    )
+    previous_query = text(f"""
         SELECT AVG(`30_year_fixed_rate`), AVG(`30_year_fixed_points`)
         FROM daily_rates
-        WHERE timestamp >= DATE_SUB(NOW(), INTERVAL :days DAY)
-        AND timestamp < DATE_SUB(NOW(), INTERVAL 7 DAY)
+        {previous_where}
     """)
     
     with engine.connect() as conn:
         current_result = conn.execute(current_query).fetchone()
-        previous_result = conn.execute(previous_query, {"days": days}).fetchone()
+        previous_params = {"days": days} if days is not None else {}
+        previous_result = conn.execute(previous_query, previous_params).fetchone()
         
         current_rate = float(current_result[0]) if current_result and current_result[0] else None
         current_points = float(current_result[1]) if current_result and current_result[1] else None
@@ -185,7 +194,7 @@ async def get_rate_comparison(engine: Engine, days: int = 365) -> Dict[str, Any]
         }
 
 
-async def get_rate_statistics(engine: Engine, days: int = 365) -> Dict[str, Any]:
+async def get_rate_statistics(engine: Engine, days: Optional[int] = 365) -> Dict[str, Any]:
     """
     Get statistical summary of rates (using effective rates).
     
@@ -196,7 +205,8 @@ async def get_rate_statistics(engine: Engine, days: int = 365) -> Dict[str, Any]
     Returns:
         Min, max, average effective rates
     """
-    query = text("""
+    where_clause = "WHERE timestamp >= DATE_SUB(NOW(), INTERVAL :days DAY)" if days is not None else ""
+    query = text(f"""
         SELECT 
             MIN(`30_year_fixed_rate`) as min_rate,
             MAX(`30_year_fixed_rate`) as max_rate,
@@ -204,11 +214,12 @@ async def get_rate_statistics(engine: Engine, days: int = 365) -> Dict[str, Any]
             STD(`30_year_fixed_rate`) as std_rate,
             AVG(`30_year_fixed_points`) as avg_points
         FROM daily_rates
-        WHERE timestamp >= DATE_SUB(NOW(), INTERVAL :days DAY)
+        {where_clause}
     """)
     
     with engine.connect() as conn:
-        result = conn.execute(query, {"days": days}).fetchone()
+        params = {"days": days} if days is not None else {}
+        result = conn.execute(query, params).fetchone()
         
         min_rate = float(result[0]) if result[0] else None
         max_rate = float(result[1]) if result[1] else None

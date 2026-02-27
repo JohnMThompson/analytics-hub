@@ -21,8 +21,18 @@ import {
 import DataTable from '../components/table';
 import { formatDecimal, formatDurationHours, formatInteger } from '../utils/formatters';
 
+const DATE_RANGE_OPTIONS = [
+  { value: 'all', label: 'All Time' },
+  { value: 30, label: 'Last 30 days' },
+  { value: 90, label: 'Last 90 days' },
+  { value: 180, label: 'Last 6 months' },
+  { value: 365, label: 'Last 12 months' },
+  { value: 730, label: 'Last 24 months' },
+];
+
 export default function SwimTracking() {
   const [activeTab, setActiveTab] = useState('overview');
+  const [selectedDays, setSelectedDays] = useState('365');
   const [summary, setSummary] = useState(null);
   const [dailyData, setDailyData] = useState([]);
   const [records, setRecords] = useState([]);
@@ -32,19 +42,22 @@ export default function SwimTracking() {
 
   useEffect(() => {
     fetchSwimData();
-  }, []);
+  }, [selectedDays]);
 
   const fetchSwimData = async () => {
     try {
       setLoading(true);
       setError(null);
 
+      const isAllTime = selectedDays === 'all';
+      const rangeParams = isAllTime ? { all_time: true } : { days: Number(selectedDays) };
+
       // Fetch all data in parallel
       const [sum, daily, recs, strokeData] = await Promise.all([
-        apiClient.getDashboardEndpoint('swim_tracking', 'summary', { days: 365 }),
-        apiClient.getDashboardEndpoint('swim_tracking', 'distance_by_date', { days: 365 }),
-        apiClient.getDashboardEndpoint('swim_tracking', 'records', { days: 365, limit: 50 }),
-        apiClient.getDashboardEndpoint('swim_tracking', 'stroke_breakdown', { days: 365 }),
+        apiClient.getDashboardEndpoint('swim_tracking', 'summary', rangeParams),
+        apiClient.getDashboardEndpoint('swim_tracking', 'distance_by_date', rangeParams),
+        apiClient.getDashboardEndpoint('swim_tracking', 'records', { ...rangeParams, limit: 50 }),
+        apiClient.getDashboardEndpoint('swim_tracking', 'stroke_breakdown', rangeParams),
       ]);
 
       setSummary(sum);
@@ -107,7 +120,7 @@ export default function SwimTracking() {
 
     return expanded;
   })();
-  const timeframeLabel = 'Last 365 days';
+  const timeframeLabel = DATE_RANGE_OPTIONS.find((option) => String(option.value) === String(selectedDays))?.label || `Last ${selectedDays} days`;
 
   const recentWorkoutColumns = [
     {
@@ -143,8 +156,30 @@ export default function SwimTracking() {
   return (
     <DashboardLayout
       title="Swim Tracking"
-      subtitle="Personal swimming statistics and workout history"
+      subtitle={`Personal swimming statistics and workout history (${timeframeLabel})`}
       themeClass="theme-swim"
+      controls={(
+        <Card className="mb-6 p-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <label htmlFor="swim-date-range" className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>
+              Date Range
+            </label>
+            <select
+              id="swim-date-range"
+              className="focus-ring rounded-md border px-3 py-2 text-sm"
+              style={{ borderColor: 'var(--border-soft)', color: 'var(--text-primary)', backgroundColor: '#fff' }}
+              value={selectedDays}
+              onChange={(event) => setSelectedDays(event.target.value)}
+            >
+              {DATE_RANGE_OPTIONS.map((option) => (
+                <option key={String(option.value)} value={String(option.value)}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </Card>
+      )}
     >
         {error && (
           <ErrorAlert error={error} onRetry={fetchSwimData} />
@@ -246,7 +281,7 @@ export default function SwimTracking() {
                           {formatInteger(summary.total_yards)}
                         </p>
                         <p className="mt-2 text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>yards</p>
-                        <p className="mt-5 text-xs" style={{ color: 'var(--text-muted)' }}>Last 365 days</p>
+                        <p className="mt-5 text-xs" style={{ color: 'var(--text-muted)' }}>{timeframeLabel}</p>
                       </div>
                     </div>
                   </Card>
