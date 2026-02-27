@@ -44,6 +44,10 @@ export default function SwimTracking() {
     fetchSwimData();
   }, [selectedDays]);
 
+  useEffect(() => {
+    document.title = 'Swim Tracking | AI Analytics';
+  }, []);
+
   const fetchSwimData = async () => {
     try {
       setLoading(true);

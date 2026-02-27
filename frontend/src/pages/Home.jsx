@@ -17,6 +17,10 @@ export default function Home() {
     fetchDashboards();
   }, []);
 
+  useEffect(() => {
+    document.title = 'Analytics and Reporting Hub | AI Analytics';
+  }, []);
+
   const fetchDashboards = async () => {
     try {
       setLoading(true);

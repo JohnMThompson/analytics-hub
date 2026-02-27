@@ -4,6 +4,7 @@
  */
 
 import { useParams, Link } from 'react-router-dom';
+import { useEffect } from 'react';
 import MortgageRates from './MortgageRates';
 import SwimTracking from './SwimTracking';
 import DashboardLayout from '../layouts/DashboardLayout';
@@ -19,6 +20,12 @@ export default function Dashboard() {
   const { dashboardId } = useParams();
   
   const DashboardComponent = dashboardComponents[dashboardId];
+
+  useEffect(() => {
+    if (!DashboardComponent) {
+      document.title = 'Dashboard Not Found | AI Analytics';
+    }
+  }, [DashboardComponent]);
 
   if (!DashboardComponent) {
     return (
