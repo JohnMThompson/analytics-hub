@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     enable_mortgage_dashboard: bool = True
     enable_swim_dashboard: bool = True
+    enable_rpi_dashboard: bool = True
     
     # Mortgage Database (required at runtime, but optional for testing)
     db_mortgage_host: Optional[str] = None
@@ -33,6 +34,14 @@ class Settings(BaseSettings):
     db_swim_password: Optional[str] = None
     db_swim_name: Optional[str] = None
     db_swim_port: int = 3306
+
+    # Raspberry Pi temperature database.
+    # If omitted, falls back to mortgage host/user/password with db name "rpi".
+    db_rpi_host: Optional[str] = None
+    db_rpi_user: Optional[str] = None
+    db_rpi_password: Optional[str] = None
+    db_rpi_name: Optional[str] = None
+    db_rpi_port: int = 3306
     
     model_config = SettingsConfigDict(
         env_file=(".env", "../.env"),
@@ -46,6 +55,17 @@ settings = Settings()
 
 # Connection pool cache
 _engines: Dict[str, Engine] = {}
+
+
+def _resolve_rpi_settings() -> Dict[str, Optional[str]]:
+    """Resolve RPI DB settings with fallback to mortgage credentials."""
+    return {
+        "host": settings.db_rpi_host or settings.db_mortgage_host,
+        "user": settings.db_rpi_user or settings.db_mortgage_user,
+        "password": settings.db_rpi_password or settings.db_mortgage_password,
+        "name": settings.db_rpi_name or "rpi",
+        "port": settings.db_rpi_port or settings.db_mortgage_port,
+    }
 
 
 def configure_logging() -> None:
@@ -71,6 +91,13 @@ def _validate_required_settings(database: str) -> None:
             "DB_SWIM_HOST": settings.db_swim_host,
             "DB_SWIM_USER": settings.db_swim_user,
             "DB_SWIM_NAME": settings.db_swim_name,
+        }
+    elif database == "rpi":
+        rpi = _resolve_rpi_settings()
+        required = {
+            "DB_RPI_HOST (or DB_MORTGAGE_HOST)": rpi["host"],
+            "DB_RPI_USER (or DB_MORTGAGE_USER)": rpi["user"],
+            "DB_RPI_NAME": rpi["name"],
         }
     else:
         raise ValueError(f"Unknown database: {database}")
@@ -116,6 +143,15 @@ def get_db_connection_string(database: str) -> str:
             f"{settings.db_swim_password}@"
             f"{settings.db_swim_host}:{settings.db_swim_port}/"
             f"{settings.db_swim_name}"
+        )
+    elif database == "rpi":
+        _validate_required_settings("rpi")
+        rpi = _resolve_rpi_settings()
+        return (
+            f"mysql+pymysql://{rpi['user']}:"
+            f"{rpi['password']}@"
+            f"{rpi['host']}:{rpi['port']}/"
+            f"{rpi['name']}"
         )
     else:
         raise ValueError(f"Unknown database: {database}")
@@ -173,6 +209,16 @@ def get_db_config(database: str) -> dict:
             "password": settings.db_swim_password,
             "database": settings.db_swim_name,
             "port": settings.db_swim_port
+        }
+    elif database == "rpi":
+        _validate_required_settings("rpi")
+        rpi = _resolve_rpi_settings()
+        return {
+            "host": rpi["host"],
+            "user": rpi["user"],
+            "password": rpi["password"],
+            "database": rpi["name"],
+            "port": rpi["port"],
         }
     else:
         raise ValueError(f"Unknown database: {database}")

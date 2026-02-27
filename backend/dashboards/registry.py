@@ -108,6 +108,8 @@ class DashboardRegistry:
             return "mortgage"
         elif "Swim" in class_name:
             return "swim"
+        elif "Temperature" in class_name:
+            return "rpi"
         else:
             # Default to first part of name in lowercase
             parts = class_name.replace("Dashboard", "").lower()

@@ -14,3 +14,4 @@ os.environ.setdefault("DB_MORTGAGE_PORT", "3306")
 
 # Keep optional dashboards disabled by default for test stability.
 os.environ.setdefault("ENABLE_SWIM_DASHBOARD", "false")
+os.environ.setdefault("ENABLE_RPI_DASHBOARD", "false")

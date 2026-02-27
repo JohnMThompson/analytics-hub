@@ -95,6 +95,14 @@ def test_database_type_detection():
     db_type = registry._get_dashboard_database(SwimTrackingDashboard)
     assert db_type == "swim"
 
+    # Test temperature detection
+    class HomeOfficeTemperatureDashboard(BaseDashboard):
+        metadata = DashboardMetadata(id="test", title="Test", description="Test")
+        async def get_data(self): pass
+
+    db_type = registry._get_dashboard_database(HomeOfficeTemperatureDashboard)
+    assert db_type == "rpi"
+
 
 def test_register_routes_uses_dashboard_custom_routes():
     """Test that registry registers custom routes from dashboard definition."""

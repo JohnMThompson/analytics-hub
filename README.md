@@ -209,6 +209,13 @@ GET /api/dashboards/swim_tracking/records?days=365&limit=50
 GET /api/dashboards/swim_tracking/stroke_breakdown?days=365
 ```
 
+Home office temperature dashboard:
+```
+GET /api/dashboards/home_office_temperature/current_conditions
+GET /api/dashboards/home_office_temperature/temperature_trend?days=365
+GET /api/dashboards/home_office_temperature/statistics?days=365
+```
+
 ## Environment Variables
 
 Copy `.env.example` to `.env` and configure:
@@ -220,12 +227,24 @@ DB_MORTGAGE_USER=
 DB_MORTGAGE_PASSWORD=
 DB_MORTGAGE_NAME=
 
+DB_SWIM_HOST=
+DB_SWIM_USER=
+DB_SWIM_PASSWORD=
+DB_SWIM_NAME=
+
+# Optional; if omitted, dashboard can reuse mortgage host/user/password with DB_RPI_NAME=rpi
+DB_RPI_HOST=
+DB_RPI_USER=
+DB_RPI_PASSWORD=
+DB_RPI_NAME=rpi
+
 # Application settings
 ENVIRONMENT=development
 DEBUG=true
 LOG_LEVEL=INFO
 ENABLE_MORTGAGE_DASHBOARD=true
-ENABLE_SWIM_DASHBOARD=false
+ENABLE_SWIM_DASHBOARD=true
+ENABLE_RPI_DASHBOARD=true
 
 # Frontend API target (optional for local dev via Vite proxy)
 # Docker build uses this value from docker-compose build args.
