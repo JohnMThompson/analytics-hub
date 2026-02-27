@@ -56,6 +56,28 @@ async def test_mortgage_current_rate_endpoint_smoke(client, monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_mortgage_weekly_rates_endpoint_smoke(client, monkeypatch):
+    dashboard = registry.dashboards.get("mortgage_rates")
+    if dashboard is None:
+        pytest.skip("Mortgage dashboard is not registered")
+
+    async def fake_weekly_rates(_engine, days=365):
+        return [{"week_start": "2026-01-05", "effective_rate_30yr": 6.4, "effective_rate_7arm": 6.1}]
+
+    dashboard_module = __import__(
+        dashboard.__class__.__module__,
+        fromlist=["_placeholder"]
+    )
+    monkeypatch.setattr(dashboard_module, "get_weekly_rates", fake_weekly_rates)
+
+    response = await client.get("/api/dashboards/mortgage_rates/weekly_rates")
+    assert response.status_code == 200
+    payload = response.json()
+    assert isinstance(payload, list)
+    assert payload[0]["week_start"] == "2026-01-05"
+
+
+@pytest.mark.asyncio
 async def test_swim_summary_endpoint_smoke(client, monkeypatch):
     dashboard = registry.dashboards.get("swim_tracking")
     if dashboard is None:

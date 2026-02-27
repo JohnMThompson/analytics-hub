@@ -134,6 +134,11 @@
     @apply mx-auto max-w-7xl px-5 py-8;
   }
 
+  .dashboard-footer {
+    @apply mx-auto max-w-7xl px-5 pb-8 text-sm;
+    color: var(--text-muted);
+  }
+
   .dashboard-section {
     @apply mb-10;
   }

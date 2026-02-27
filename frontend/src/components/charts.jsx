@@ -6,6 +6,7 @@ import {
   Legend,
   Line,
   LineChart,
+  LabelList,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -136,6 +137,10 @@ export function BarChartPanel({
   barName,
   height = 360,
   yAxisWidth = 100,
+  hideXAxis = false,
+  showBarValueLabels = false,
+  showLegend = true,
+  chartRightMargin = 56,
   emptyMessage = 'No chart data available.',
   valueFormatter = (value) => value,
   labelFormatter = (label) => label,
@@ -147,9 +152,19 @@ export function BarChartPanel({
   return (
     <ChartPanel>
       <ResponsiveContainer width="100%" height={height}>
-        <BarChart data={data} layout="vertical">
+        <BarChart
+          data={data}
+          layout="vertical"
+          margin={{ top: 8, right: showBarValueLabels ? chartRightMargin : 16, bottom: 8, left: 0 }}
+        >
           <CartesianGrid strokeDasharray="3 3" stroke="#dbe5f0" />
-          <XAxis type="number" tick={{ fontSize: 12, fill: '#475569' }} />
+          <XAxis
+            type="number"
+            tick={{ fontSize: 12, fill: '#475569' }}
+            hide={hideXAxis}
+            axisLine={!hideXAxis}
+            tickLine={!hideXAxis}
+          />
           <YAxis
             dataKey={yKey || xKey}
             type="category"
@@ -157,8 +172,17 @@ export function BarChartPanel({
             width={yAxisWidth}
           />
           <Tooltip contentStyle={tooltipStyle} formatter={valueFormatter} labelFormatter={labelFormatter} />
-          <Legend />
-          <Bar dataKey={barKey} name={barName || barKey} fill="var(--chart-2)" radius={[0, 6, 6, 0]} />
+          {showLegend && <Legend />}
+          <Bar dataKey={barKey} name={barName || barKey} fill="var(--chart-2)" radius={[0, 6, 6, 0]}>
+            {showBarValueLabels && (
+              <LabelList
+                dataKey={barKey}
+                position="right"
+                formatter={(value) => valueFormatter(value)}
+                style={{ fill: '#334155', fontSize: 12, fontWeight: 600 }}
+              />
+            )}
+          </Bar>
         </BarChart>
       </ResponsiveContainer>
     </ChartPanel>

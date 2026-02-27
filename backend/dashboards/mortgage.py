@@ -3,7 +3,7 @@ Mortgage Rates Dashboard Module
 
 Provides current and historical mortgage rate data from the mortgage database.
 """
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from fastapi import HTTPException
 import logging
 
@@ -16,6 +16,7 @@ try:
     from queries.mortgage import (
         get_current_rate,
         get_historical_rates,
+        get_weekly_rates,
         get_rate_comparison,
         get_rate_statistics
     )
@@ -25,6 +26,7 @@ except ImportError:
     from backend.queries.mortgage import (
         get_current_rate,
         get_historical_rates,
+        get_weekly_rates,
         get_rate_comparison,
         get_rate_statistics
     )
@@ -76,26 +78,38 @@ class MortgageRateDashboard(BaseDashboard):
         except Exception as e:
             self._raise_internal_error("current_rate", e)
     
-    async def get_historical_endpoint(self, days: int = 365) -> List[Dict[str, Any]]:
+    async def get_historical_endpoint(self, days: int = 365, all_time: bool = False) -> List[Dict[str, Any]]:
         """Get historical rates"""
         try:
-            historical = await get_historical_rates(self.engine, days=days)
+            days_filter: Optional[int] = None if all_time else days
+            historical = await get_historical_rates(self.engine, days=days_filter)
             return historical
         except Exception as e:
             self._raise_internal_error("historical_rates", e)
-    
-    async def get_rate_comparison_endpoint(self, days: int = 365) -> Dict[str, Any]:
+
+    async def get_weekly_rates_endpoint(self, days: int = 365, all_time: bool = False) -> List[Dict[str, Any]]:
+        """Get weekly-average rates."""
+        try:
+            days_filter: Optional[int] = None if all_time else days
+            weekly = await get_weekly_rates(self.engine, days=days_filter)
+            return weekly
+        except Exception as e:
+            self._raise_internal_error("weekly_rates", e)
+
+    async def get_rate_comparison_endpoint(self, days: int = 365, all_time: bool = False) -> Dict[str, Any]:
         """Get rate comparison data"""
         try:
-            comparison = await get_rate_comparison(self.engine, days=days)
+            days_filter: Optional[int] = None if all_time else days
+            comparison = await get_rate_comparison(self.engine, days=days_filter)
             return comparison
         except Exception as e:
             self._raise_internal_error("rate_comparison", e)
-    
-    async def get_rate_statistics_endpoint(self, days: int = 365) -> Dict[str, Any]:
+
+    async def get_rate_statistics_endpoint(self, days: int = 365, all_time: bool = False) -> Dict[str, Any]:
         """Get rate statistics"""
         try:
-            statistics = await get_rate_statistics(self.engine, days=days)
+            days_filter: Optional[int] = None if all_time else days
+            statistics = await get_rate_statistics(self.engine, days=days_filter)
             return statistics
         except Exception as e:
             self._raise_internal_error("rate_statistics", e)
@@ -105,6 +119,7 @@ class MortgageRateDashboard(BaseDashboard):
         return [
             {"path": "current_rate", "endpoint": self.get_current_rate_endpoint},
             {"path": "historical_rates", "endpoint": self.get_historical_endpoint},
+            {"path": "weekly_rates", "endpoint": self.get_weekly_rates_endpoint},
             {"path": "rate_comparison", "endpoint": self.get_rate_comparison_endpoint},
             {"path": "rate_statistics", "endpoint": self.get_rate_statistics_endpoint},
         ]
