@@ -22,6 +22,7 @@ import DataTable from '../components/table';
 import { formatDecimal, formatDurationHours, formatInteger } from '../utils/formatters';
 
 export default function SwimTracking() {
+  const [activeTab, setActiveTab] = useState('overview');
   const [summary, setSummary] = useState(null);
   const [dailyData, setDailyData] = useState([]);
   const [records, setRecords] = useState([]);
@@ -128,11 +129,6 @@ export default function SwimTracking() {
       render: (row) => formatInteger(row.total_distance_yards),
     },
     {
-      key: 'location',
-      header: 'Location',
-      render: (row) => row.location || '—',
-    },
-    {
       key: 'comments',
       header: 'Comments',
       tone: 'muted',
@@ -154,165 +150,204 @@ export default function SwimTracking() {
           <ErrorAlert error={error} onRetry={fetchSwimData} />
         )}
 
-        {/* Summary Section */}
-        {summary && (
-          <DashboardSection
-            title="Performance Overview"
-            subtitle={`${timeframeLabel} summary across workouts, time, and distance.`}
-          >
-            <KpiGrid columns={4}>
-              <Card className="kpi-focus-card swim-kpi p-0">
-                <div className="min-h-[220px] flex flex-col text-center">
-                  <div className="px-5 pt-4 pb-3 border-b" style={{ borderColor: 'var(--border-soft)' }}>
-                    <p className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>Total Workouts</p>
-                  </div>
-                  <div className="flex-1 flex flex-col items-center justify-center px-6 py-5">
-                    <p className="text-5xl font-bold leading-none" style={{ color: 'var(--text-primary)' }}>
-                      {formatInteger(summary.workout_count)}
-                    </p>
-                    <p className="mt-2 text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>sessions</p>
-                    <p className="mt-5 text-xs" style={{ color: 'var(--text-muted)' }}>Avg duration: {averageMinutesPerWorkout} min</p>
-                  </div>
-                </div>
-              </Card>
-              <Card className="kpi-focus-card swim-kpi p-0">
-                <div className="min-h-[220px] flex flex-col text-center">
-                  <div className="px-5 pt-4 pb-3 border-b" style={{ borderColor: 'var(--border-soft)' }}>
-                    <p className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>Total Distance</p>
-                  </div>
-                  <div className="flex-1 flex flex-col items-center justify-center px-6 py-5">
-                    <p className="text-5xl font-bold leading-none" style={{ color: 'var(--text-primary)' }}>
-                      {formatDecimal(summary.total_miles, 2)}
-                    </p>
-                    <p className="mt-2 text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>miles</p>
-                    <p className="mt-5 text-xs" style={{ color: 'var(--text-muted)' }}>
-                      Avg per workout: {formatInteger(averageYardsPerWorkout)} yds
-                    </p>
-                  </div>
-                </div>
-              </Card>
-              <Card className="kpi-focus-card swim-kpi p-0">
-                <div className="min-h-[220px] flex flex-col text-center">
-                  <div className="px-5 pt-4 pb-3 border-b" style={{ borderColor: 'var(--border-soft)' }}>
-                    <p className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>Total Time</p>
-                  </div>
-                  <div className="flex-1 flex flex-col items-center justify-center px-6 py-5">
-                    <p className="text-5xl font-bold leading-none" style={{ color: 'var(--text-primary)' }}>
-                      {formatDurationHours(summary.total_hours)}
-                    </p>
-                    <p className="mt-2 text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>in pool</p>
-                    <p className="mt-5 text-xs" style={{ color: 'var(--text-muted)' }}>
-                      Avg per workout: {averageMinutesPerWorkout} min
-                    </p>
-                  </div>
-                </div>
-              </Card>
-              <Card className="kpi-focus-card swim-kpi p-0">
-                <div className="min-h-[220px] flex flex-col text-center">
-                  <div className="px-5 pt-4 pb-3 border-b" style={{ borderColor: 'var(--border-soft)' }}>
-                    <p className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>Total Yards</p>
-                  </div>
-                  <div className="flex-1 flex flex-col items-center justify-center px-6 py-5">
-                    <p className="text-5xl font-bold leading-none" style={{ color: 'var(--text-primary)' }}>
-                      {formatInteger(summary.total_yards)}
-                    </p>
-                    <p className="mt-2 text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>yards</p>
-                    <p className="mt-5 text-xs" style={{ color: 'var(--text-muted)' }}>Last 365 days</p>
-                  </div>
-                </div>
-              </Card>
-            </KpiGrid>
-          </DashboardSection>
+        <Card className="mb-6 p-2">
+          <div role="tablist" aria-label="Swim Tracking Sections" className="flex flex-wrap gap-2">
+            <button
+              role="tab"
+              type="button"
+              aria-selected={activeTab === 'overview'}
+              onClick={() => setActiveTab('overview')}
+              className="focus-ring rounded-full px-4 py-2 text-sm font-semibold transition-colors"
+              style={{
+                backgroundColor: activeTab === 'overview' ? 'var(--accent-100)' : 'transparent',
+                color: activeTab === 'overview' ? 'var(--accent-700)' : 'var(--text-secondary)',
+              }}
+            >
+              Overview
+            </button>
+            <button
+              role="tab"
+              type="button"
+              aria-selected={activeTab === 'stroke'}
+              onClick={() => setActiveTab('stroke')}
+              className="focus-ring rounded-full px-4 py-2 text-sm font-semibold transition-colors"
+              style={{
+                backgroundColor: activeTab === 'stroke' ? 'var(--accent-100)' : 'transparent',
+                color: activeTab === 'stroke' ? 'var(--accent-700)' : 'var(--text-secondary)',
+              }}
+            >
+              Stroke Composition
+            </button>
+          </div>
+        </Card>
+
+        {activeTab === 'overview' && (
+          <>
+            {/* Summary Section */}
+            {summary && (
+              <DashboardSection
+                title="Performance Overview"
+                subtitle={`${timeframeLabel} summary across workouts, time, and distance.`}
+              >
+                <KpiGrid columns={4}>
+                  <Card className="kpi-focus-card swim-kpi p-0">
+                    <div className="min-h-[220px] flex flex-col text-center">
+                      <div className="px-5 pt-4 pb-3 border-b" style={{ borderColor: 'var(--border-soft)' }}>
+                        <p className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>Total Workouts</p>
+                      </div>
+                      <div className="flex-1 flex flex-col items-center justify-center px-6 py-5">
+                        <p className="text-5xl font-bold leading-none" style={{ color: 'var(--text-primary)' }}>
+                          {formatInteger(summary.workout_count)}
+                        </p>
+                        <p className="mt-2 text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>sessions</p>
+                        <p className="mt-5 text-xs" style={{ color: 'var(--text-muted)' }}>Avg duration: {averageMinutesPerWorkout} min</p>
+                      </div>
+                    </div>
+                  </Card>
+                  <Card className="kpi-focus-card swim-kpi p-0">
+                    <div className="min-h-[220px] flex flex-col text-center">
+                      <div className="px-5 pt-4 pb-3 border-b" style={{ borderColor: 'var(--border-soft)' }}>
+                        <p className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>Total Distance</p>
+                      </div>
+                      <div className="flex-1 flex flex-col items-center justify-center px-6 py-5">
+                        <p className="text-5xl font-bold leading-none" style={{ color: 'var(--text-primary)' }}>
+                          {formatDecimal(summary.total_miles, 2)}
+                        </p>
+                        <p className="mt-2 text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>miles</p>
+                        <p className="mt-5 text-xs" style={{ color: 'var(--text-muted)' }}>
+                          Avg per workout: {formatInteger(averageYardsPerWorkout)} yds
+                        </p>
+                      </div>
+                    </div>
+                  </Card>
+                  <Card className="kpi-focus-card swim-kpi p-0">
+                    <div className="min-h-[220px] flex flex-col text-center">
+                      <div className="px-5 pt-4 pb-3 border-b" style={{ borderColor: 'var(--border-soft)' }}>
+                        <p className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>Total Time</p>
+                      </div>
+                      <div className="flex-1 flex flex-col items-center justify-center px-6 py-5">
+                        <p className="text-5xl font-bold leading-none" style={{ color: 'var(--text-primary)' }}>
+                          {formatDurationHours(summary.total_hours)}
+                        </p>
+                        <p className="mt-2 text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>in pool</p>
+                        <p className="mt-5 text-xs" style={{ color: 'var(--text-muted)' }}>
+                          Avg per workout: {averageMinutesPerWorkout} min
+                        </p>
+                      </div>
+                    </div>
+                  </Card>
+                  <Card className="kpi-focus-card swim-kpi p-0">
+                    <div className="min-h-[220px] flex flex-col text-center">
+                      <div className="px-5 pt-4 pb-3 border-b" style={{ borderColor: 'var(--border-soft)' }}>
+                        <p className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>Total Yards</p>
+                      </div>
+                      <div className="flex-1 flex flex-col items-center justify-center px-6 py-5">
+                        <p className="text-5xl font-bold leading-none" style={{ color: 'var(--text-primary)' }}>
+                          {formatInteger(summary.total_yards)}
+                        </p>
+                        <p className="mt-2 text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>yards</p>
+                        <p className="mt-5 text-xs" style={{ color: 'var(--text-muted)' }}>Last 365 days</p>
+                      </div>
+                    </div>
+                  </Card>
+                </KpiGrid>
+              </DashboardSection>
+            )}
+
+            {/* Daily Distance Chart */}
+            {filledDailyData.length > 0 && (
+              <DashboardSection
+                title="Distance Trend"
+                subtitle={`${timeframeLabel} daily distance (yards).`}
+              >
+                <ColumnChartPanel
+                  data={filledDailyData}
+                  xKey="date"
+                  bars={[{ dataKey: 'total_yards', name: 'Distance (yards)', color: 'var(--chart-4)' }]}
+                  height={400}
+                  xAxisInterval={dailyAxisInterval}
+                  yDomain={[0, 'auto']}
+                  valueFormatter={(value) => `${formatInteger(value)} yards`}
+                  labelFormatter={(date) => `Date: ${date}`}
+                />
+              </DashboardSection>
+            )}
+
+            {/* Records Table */}
+            {records.length > 0 && (
+              <DashboardSection
+                title="Recent Workouts"
+                subtitle="Most recent swim sessions with duration, distance, and notes."
+              >
+                <DataTablePanel>
+                  <DataTable
+                    columns={recentWorkoutColumns}
+                    rows={records}
+                    rowKey="id"
+                    emptyMessage="No workouts found."
+                  />
+                </DataTablePanel>
+              </DashboardSection>
+            )}
+          </>
         )}
 
-        {/* Daily Distance Chart */}
-        {filledDailyData.length > 0 && (
-          <DashboardSection
-            title="Distance Trend"
-            subtitle={`${timeframeLabel} daily distance (yards).`}
-          >
-            <ColumnChartPanel
-              data={filledDailyData}
-              xKey="date"
-              bars={[{ dataKey: 'total_yards', name: 'Distance (yards)', color: 'var(--chart-4)' }]}
-              height={400}
-              xAxisInterval={dailyAxisInterval}
-              yDomain={[0, 'auto']}
-              valueFormatter={(value) => `${formatInteger(value)} yards`}
-              labelFormatter={(date) => `Date: ${date}`}
-            />
-          </DashboardSection>
-        )}
+        {activeTab === 'stroke' && (
+          <>
+            {/* Stroke Breakdown KPIs */}
+            {strokeDistribution.length > 0 && (
+              <DashboardSection
+                title="Stroke Composition Snapshot"
+                subtitle={`${timeframeLabel} total distance by stroke type.`}
+              >
+                <KpiGrid columns={4}>
+                  <Card className="kpi-focus-card swim-kpi p-6 text-center">
+                    <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>Freestyle</p>
+                    <p className="text-4xl font-bold" style={{ color: 'var(--text-primary)' }}>{formatInteger(strokes.freestyle)}</p>
+                    <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>yards</p>
+                  </Card>
+                  <Card className="kpi-focus-card swim-kpi p-6 text-center">
+                    <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>Backstroke</p>
+                    <p className="text-4xl font-bold" style={{ color: 'var(--text-primary)' }}>{formatInteger(strokes.backstroke)}</p>
+                    <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>yards</p>
+                  </Card>
+                  <Card className="kpi-focus-card swim-kpi p-6 text-center">
+                    <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>Breaststroke</p>
+                    <p className="text-4xl font-bold" style={{ color: 'var(--text-primary)' }}>{formatInteger(strokes.breaststroke)}</p>
+                    <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>yards</p>
+                  </Card>
+                  <Card className="kpi-focus-card swim-kpi p-6 text-center">
+                    <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>Butterfly</p>
+                    <p className="text-4xl font-bold" style={{ color: 'var(--text-primary)' }}>{formatInteger(strokes.butterfly)}</p>
+                    <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>yards</p>
+                  </Card>
+                </KpiGrid>
+              </DashboardSection>
+            )}
 
-        {/* Stroke Breakdown KPIs */}
-        {strokeDistribution.length > 0 && (
-          <DashboardSection
-            title="Stroke Composition Snapshot"
-            subtitle={`${timeframeLabel} total distance by stroke type.`}
-          >
-            <KpiGrid columns={4}>
-              <Card className="kpi-focus-card swim-kpi p-6 text-center">
-                <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>Freestyle</p>
-                <p className="text-4xl font-bold" style={{ color: 'var(--text-primary)' }}>{formatInteger(strokes.freestyle)}</p>
-                <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>yards</p>
-              </Card>
-              <Card className="kpi-focus-card swim-kpi p-6 text-center">
-                <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>Backstroke</p>
-                <p className="text-4xl font-bold" style={{ color: 'var(--text-primary)' }}>{formatInteger(strokes.backstroke)}</p>
-                <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>yards</p>
-              </Card>
-              <Card className="kpi-focus-card swim-kpi p-6 text-center">
-                <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>Breaststroke</p>
-                <p className="text-4xl font-bold" style={{ color: 'var(--text-primary)' }}>{formatInteger(strokes.breaststroke)}</p>
-                <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>yards</p>
-              </Card>
-              <Card className="kpi-focus-card swim-kpi p-6 text-center">
-                <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>Butterfly</p>
-                <p className="text-4xl font-bold" style={{ color: 'var(--text-primary)' }}>{formatInteger(strokes.butterfly)}</p>
-                <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>yards</p>
-              </Card>
-            </KpiGrid>
-          </DashboardSection>
-        )}
-
-        {/* Bar / Pie / Donut Charts */}
-        {strokeDistribution.length > 0 && (
-          <DashboardSection
-            title="Stroke Composition Visuals"
-            subtitle="Ranked and proportional views of total distance by stroke."
-          >
-            <div className="grid grid-cols-1 gap-6">
-              <div>
-              <BarChartPanel
-                data={strokeDistribution}
-                yKey="stroke"
-                barKey="yards"
-                barName="Distance (yards)"
-                yAxisWidth={120}
-                height={420}
-                valueFormatter={(value) => `${formatInteger(value)} yards`}
-                labelFormatter={(stroke) => `Stroke: ${stroke}`}
-              />
-              </div>
-            </div>
-          </DashboardSection>
-        )}
-
-        {/* Records Table */}
-        {records.length > 0 && (
-          <DashboardSection
-            title="Recent Workouts"
-            subtitle="Most recent swim sessions with duration, distance, and notes."
-          >
-            <DataTablePanel>
-              <DataTable
-                columns={recentWorkoutColumns}
-                rows={records}
-                rowKey="id"
-                emptyMessage="No workouts found."
-              />
-            </DataTablePanel>
-          </DashboardSection>
+            {/* Bar / Pie / Donut Charts */}
+            {strokeDistribution.length > 0 && (
+              <DashboardSection
+                title="Stroke Composition Visuals"
+                subtitle="Ranked and proportional views of total distance by stroke."
+              >
+                <div className="grid grid-cols-1 gap-6">
+                  <div>
+                    <BarChartPanel
+                      data={strokeDistribution}
+                      yKey="stroke"
+                      barKey="yards"
+                      barName="Distance (yards)"
+                      yAxisWidth={120}
+                      height={420}
+                      valueFormatter={(value) => `${formatInteger(value)} yards`}
+                      labelFormatter={(stroke) => `Stroke: ${stroke}`}
+                    />
+                  </div>
+                </div>
+              </DashboardSection>
+            )}
+          </>
         )}
     </DashboardLayout>
   );

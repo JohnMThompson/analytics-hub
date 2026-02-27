@@ -97,7 +97,6 @@ async def get_swim_records(engine: Engine, days: int = 365, limit: int = 50) -> 
             start_date_time,
             duration,
             total_distance_yards,
-            location,
             freestyle_distance,
             backstroke_distance,
             breaststroke_distance,
@@ -117,12 +116,11 @@ async def get_swim_records(engine: Engine, days: int = 365, limit: int = 50) -> 
                 "start_date_time": result[1].isoformat() if result[1] else None,
                 "duration": int(result[2]) if result[2] else 0,
                 "total_distance_yards": int(result[3]) if result[3] else 0,
-                "location": result[4],
-                "freestyle_distance": int(result[5]) if result[5] else 0,
-                "backstroke_distance": int(result[6]) if result[6] else 0,
-                "breaststroke_distance": int(result[7]) if result[7] else 0,
-                "butterfly_distance": int(result[8]) if result[8] else 0,
-                "comments": result[9],
+                "freestyle_distance": int(result[4]) if result[4] else 0,
+                "backstroke_distance": int(result[5]) if result[5] else 0,
+                "breaststroke_distance": int(result[6]) if result[6] else 0,
+                "butterfly_distance": int(result[7]) if result[7] else 0,
+                "comments": result[8],
             }
             for result in results
         ]

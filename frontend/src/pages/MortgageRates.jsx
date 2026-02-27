@@ -20,7 +20,7 @@ import { formatPercent, formatSignedPercent } from '../utils/formatters';
 export default function MortgageRates() {
   const [currentRate, setCurrentRate] = useState(null);
   const [historicalData, setHistoricalData] = useState([]);
-  const [statistics, setStatistics] = useState(null);
+  const [weeklyData, setWeeklyData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -34,15 +34,15 @@ export default function MortgageRates() {
       setError(null);
 
       // Fetch all data in parallel
-      const [current, historical, stats] = await Promise.all([
+      const [current, historical, weekly] = await Promise.all([
         apiClient.getDashboardEndpoint('mortgage_rates', 'current_rate'),
         apiClient.getDashboardEndpoint('mortgage_rates', 'historical_rates', { days: 365 }),
-        apiClient.getDashboardEndpoint('mortgage_rates', 'rate_statistics', { days: 365 }),
+        apiClient.getDashboardEndpoint('mortgage_rates', 'weekly_rates', { days: 365 }),
       ]);
 
       setCurrentRate(current);
       setHistoricalData(Array.isArray(historical) ? historical : []);
-      setStatistics(stats);
+      setWeeklyData(Array.isArray(weekly) ? weekly : []);
     } catch (err) {
       setError(err);
     } finally {
@@ -197,50 +197,45 @@ export default function MortgageRates() {
         )}
 
         {/* Historical Chart Section */}
-        {historicalData.length > 0 && (
+        {(weeklyData.length > 0 || historicalData.length > 0) && (
           <DashboardSection title="1-Year Historical Trend">
-            <LineChartPanel
-              data={historicalData}
-              xKey="date"
-              yDomain={[5.0, 'auto']}
-              lines={[
-                { dataKey: 'effective_rate_30yr', name: '30-Year Fixed', color: 'var(--chart-1)' },
-                { dataKey: 'effective_rate_7arm', name: '7/1 ARM', color: 'var(--chart-2)' },
-              ]}
-              height={400}
-              valueFormatter={(value) => (value ? `${value.toFixed(3)}%` : 'N/A')}
-              labelFormatter={(date) => `Date: ${date}`}
-            />
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              <div>
+                <h3 className="mb-3 text-base font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>Daily</h3>
+                <LineChartPanel
+                  data={historicalData}
+                  xKey="date"
+                  yDomain={[5.0, 'auto']}
+                  lines={[
+                    { dataKey: 'effective_rate_30yr', name: '30-Year Fixed', color: 'var(--chart-1)' },
+                    { dataKey: 'effective_rate_7arm', name: '7/1 ARM', color: 'var(--chart-2)' },
+                  ]}
+                  height={400}
+                  emptyMessage="No daily trend data available."
+                  valueFormatter={(value) => (value ? `${value.toFixed(3)}%` : 'N/A')}
+                  labelFormatter={(date) => `Date: ${date}`}
+                />
+              </div>
+              <div>
+                <h3 className="mb-3 text-base font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>Weekly Average</h3>
+                <LineChartPanel
+                  data={weeklyData}
+                  xKey="week_start"
+                  yDomain={[5.0, 'auto']}
+                  lines={[
+                    { dataKey: 'effective_rate_30yr', name: '30-Year Fixed', color: 'var(--chart-1)' },
+                    { dataKey: 'effective_rate_7arm', name: '7/1 ARM', color: 'var(--chart-2)' },
+                  ]}
+                  height={400}
+                  emptyMessage="No weekly trend data available."
+                  valueFormatter={(value) => (value ? `${value.toFixed(3)}%` : 'N/A')}
+                  labelFormatter={(date) => `Week Start: ${date}`}
+                />
+              </div>
+            </div>
           </DashboardSection>
         )}
 
-        {/* Statistics Section */}
-        {statistics && (
-          <DashboardSection title="1-Year Statistics">
-            <KpiGrid columns={4}>
-              <MetricCard
-                label="Minimum"
-                value={formatPercent(statistics.min, 3)}
-                variant="compact"
-              />
-              <MetricCard
-                label="Maximum"
-                value={formatPercent(statistics.max, 3)}
-                variant="compact"
-              />
-              <MetricCard
-                label="Average"
-                value={formatPercent(statistics.average, 3)}
-                variant="compact"
-              />
-              <MetricCard
-                label="Std Deviation"
-                value={formatPercent(statistics.std_dev, 4)}
-                variant="compact"
-              />
-            </KpiGrid>
-          </DashboardSection>
-        )}
     </DashboardLayout>
   );
 }

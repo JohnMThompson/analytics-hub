@@ -28,7 +28,8 @@ export function formatSignedPercent(value, maximumFractionDigits = 2) {
 
 export function formatDurationHours(totalHours) {
   if (totalHours === null || totalHours === undefined || Number.isNaN(Number(totalHours))) return '—';
-  const hours = Number(totalHours);
-  if (hours < 1) return `${formatDecimal(hours * 60, 0)} min`;
-  return `${formatDecimal(hours, 1)} hrs`;
+  const totalMinutes = Math.round(Number(totalHours) * 60);
+  const hoursPart = Math.floor(totalMinutes / 60);
+  const minutesPart = totalMinutes % 60;
+  return `${hoursPart}h ${minutesPart}m`;
 }

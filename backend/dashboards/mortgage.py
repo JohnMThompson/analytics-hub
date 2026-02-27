@@ -16,6 +16,7 @@ try:
     from queries.mortgage import (
         get_current_rate,
         get_historical_rates,
+        get_weekly_rates,
         get_rate_comparison,
         get_rate_statistics
     )
@@ -25,6 +26,7 @@ except ImportError:
     from backend.queries.mortgage import (
         get_current_rate,
         get_historical_rates,
+        get_weekly_rates,
         get_rate_comparison,
         get_rate_statistics
     )
@@ -83,6 +85,14 @@ class MortgageRateDashboard(BaseDashboard):
             return historical
         except Exception as e:
             self._raise_internal_error("historical_rates", e)
+
+    async def get_weekly_rates_endpoint(self, days: int = 365) -> List[Dict[str, Any]]:
+        """Get weekly-average rates."""
+        try:
+            weekly = await get_weekly_rates(self.engine, days=days)
+            return weekly
+        except Exception as e:
+            self._raise_internal_error("weekly_rates", e)
     
     async def get_rate_comparison_endpoint(self, days: int = 365) -> Dict[str, Any]:
         """Get rate comparison data"""
@@ -105,6 +115,7 @@ class MortgageRateDashboard(BaseDashboard):
         return [
             {"path": "current_rate", "endpoint": self.get_current_rate_endpoint},
             {"path": "historical_rates", "endpoint": self.get_historical_endpoint},
+            {"path": "weekly_rates", "endpoint": self.get_weekly_rates_endpoint},
             {"path": "rate_comparison", "endpoint": self.get_rate_comparison_endpoint},
             {"path": "rate_statistics", "endpoint": self.get_rate_statistics_endpoint},
         ]

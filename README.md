@@ -147,6 +147,10 @@ Current CI checks:
 Planned later (not implemented yet):
 - Automatic deployment from `main` after CI passes
 
+## Backlog
+
+- Data quality report feature: scan dashboard datasets for anomalies (for example, stroke totals not matching workout totals), flag suspect rows, and suggest remediation steps.
+
 ### Running Tests
 
 ```bash

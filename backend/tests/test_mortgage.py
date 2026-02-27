@@ -10,6 +10,7 @@ try:
     from queries.mortgage import (
         get_current_rate,
         get_historical_rates,
+        get_weekly_rates,
         get_rate_comparison,
         get_rate_statistics
     )
@@ -17,6 +18,7 @@ except ImportError:
     from backend.queries.mortgage import (
         get_current_rate,
         get_historical_rates,
+        get_weekly_rates,
         get_rate_comparison,
         get_rate_statistics
     )
@@ -92,6 +94,32 @@ async def test_get_historical_rates():
     assert result[0]["rate_30yr"] == 6.75
     assert result[0]["effective_rate_30yr"] == round(6.75 + (0.5 * 0.25), 4)
     assert result[1]["rate_30yr"] == 6.80
+
+
+@pytest.mark.asyncio
+async def test_get_weekly_rates():
+    """Test fetching weekly average rates."""
+    mock_results = [
+        (datetime(2024, 2, 12).date(), 6.75, 0.5, 6.25, 0.3, 6.875, 6.325),
+        (datetime(2024, 2, 19).date(), 6.8, 0.5, 6.3, 0.3, 6.925, 6.375),
+    ]
+
+    mock_engine = Mock()
+    mock_conn = Mock()
+    mock_engine.connect.return_value.__enter__ = Mock(return_value=mock_conn)
+    mock_engine.connect.return_value.__exit__ = Mock(return_value=None)
+
+    mock_result_obj = Mock()
+    mock_result_obj.fetchall.return_value = mock_results
+    mock_conn.execute.return_value = mock_result_obj
+
+    result = await get_weekly_rates(mock_engine, days=365)
+
+    assert len(result) == 2
+    assert result[0]["week_start"] == "2024-02-12"
+    assert result[0]["effective_rate_30yr"] == 6.875
+    assert result[0]["effective_rate_7arm"] == 6.325
+    assert result[1]["week_start"] == "2024-02-19"
 
 
 def test_rate_change_calculation():

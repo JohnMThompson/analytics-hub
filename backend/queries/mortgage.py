@@ -97,6 +97,42 @@ async def get_historical_rates(engine: Engine, days: int = 365) -> List[Dict[str
         ]
 
 
+async def get_weekly_rates(engine: Engine, days: int = 365) -> List[Dict[str, Any]]:
+    """
+    Get weekly-average mortgage rates for the specified number of days.
+    Weekly values are averaged per ISO week with effective rates included.
+    """
+    query = text("""
+        SELECT
+            MIN(DATE_SUB(DATE(timestamp), INTERVAL WEEKDAY(timestamp) DAY)) as week_start,
+            AVG(`30_year_fixed_rate`) as rate_30yr,
+            AVG(`30_year_fixed_points`) as points_30yr,
+            AVG(`71_arm_rate`) as rate_7arm,
+            AVG(`71_arm_point`) as points_7arm,
+            AVG(`30_year_fixed_rate` + (COALESCE(`30_year_fixed_points`, 0) * 0.25)) as effective_rate_30yr,
+            AVG(`71_arm_rate` + (COALESCE(`71_arm_point`, 0) * 0.25)) as effective_rate_7arm
+        FROM daily_rates
+        WHERE timestamp >= DATE_SUB(NOW(), INTERVAL :days DAY)
+        GROUP BY YEAR(timestamp), WEEK(timestamp, 1)
+        ORDER BY week_start ASC
+    """)
+
+    with engine.connect() as conn:
+        results = conn.execute(query, {"days": days}).fetchall()
+        return [
+            {
+                "week_start": result[0].isoformat() if result[0] else None,
+                "rate_30yr": round(float(result[1]), 4) if result[1] else None,
+                "points_30yr": round(float(result[2]), 4) if result[2] else None,
+                "effective_rate_30yr": round(float(result[5]), 4) if result[5] else None,
+                "rate_7arm": round(float(result[3]), 4) if result[3] else None,
+                "points_7arm": round(float(result[4]), 4) if result[4] else None,
+                "effective_rate_7arm": round(float(result[6]), 4) if result[6] else None,
+            }
+            for result in results
+        ]
+
+
 async def get_rate_comparison(engine: Engine, days: int = 365) -> Dict[str, Any]:
     """
     Get rate comparison: current vs previous period (using effective rates).
