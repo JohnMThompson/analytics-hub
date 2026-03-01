@@ -48,8 +48,9 @@ class DashboardRegistry:
             try:
                 self._load_dashboard(module_name)
             except ValueError as e:
-                logger.error(f"Dashboard configuration error for {module_name}: {e}")
-                raise
+                # A single misconfigured dashboard should not prevent the API
+                # from starting; skip it and keep loading others.
+                logger.error(f"Dashboard configuration error for {module_name}: {e}. Skipping dashboard.")
             except Exception as e:
                 logger.error(f"Failed to load dashboard {module_name}: {e}")
     

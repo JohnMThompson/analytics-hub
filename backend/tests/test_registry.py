@@ -170,5 +170,28 @@ def test_enabled_dashboard_missing_config_raises(monkeypatch):
         registry._load_dashboard("mortgage")
 
 
+def test_discovery_skips_dashboard_on_config_error(monkeypatch):
+    """Test that discovery continues when one dashboard has invalid config."""
+    registry = DashboardRegistry()
+
+    registry_module = importlib.import_module(DashboardRegistry.__module__)
+    fake_files = [
+        SimpleNamespace(stem="temperature", name="temperature.py"),
+        SimpleNamespace(stem="mortgage", name="mortgage.py"),
+    ]
+    calls = []
+
+    def fake_load(module_name):
+        calls.append(module_name)
+        if module_name == "temperature":
+            raise ValueError("missing config")
+
+    monkeypatch.setattr(registry_module.Path, "glob", lambda _self, _pattern: fake_files)
+    monkeypatch.setattr(registry, "_load_dashboard", fake_load)
+
+    registry.discover_and_register()
+    assert calls == ["temperature", "mortgage"]
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
