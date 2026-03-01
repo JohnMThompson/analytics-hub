@@ -95,6 +95,14 @@ def test_database_type_detection():
     db_type = registry._get_dashboard_database(SwimTrackingDashboard)
     assert db_type == "swim"
 
+    # Test temperature detection
+    class HomeOfficeTemperatureDashboard(BaseDashboard):
+        metadata = DashboardMetadata(id="test", title="Test", description="Test")
+        async def get_data(self): pass
+
+    db_type = registry._get_dashboard_database(HomeOfficeTemperatureDashboard)
+    assert db_type == "rpi"
+
 
 def test_register_routes_uses_dashboard_custom_routes():
     """Test that registry registers custom routes from dashboard definition."""
@@ -160,6 +168,29 @@ def test_enabled_dashboard_missing_config_raises(monkeypatch):
 
     with pytest.raises(ValueError, match="missing config"):
         registry._load_dashboard("mortgage")
+
+
+def test_discovery_skips_dashboard_on_config_error(monkeypatch):
+    """Test that discovery continues when one dashboard has invalid config."""
+    registry = DashboardRegistry()
+
+    registry_module = importlib.import_module(DashboardRegistry.__module__)
+    fake_files = [
+        SimpleNamespace(stem="temperature", name="temperature.py"),
+        SimpleNamespace(stem="mortgage", name="mortgage.py"),
+    ]
+    calls = []
+
+    def fake_load(module_name):
+        calls.append(module_name)
+        if module_name == "temperature":
+            raise ValueError("missing config")
+
+    monkeypatch.setattr(registry_module.Path, "glob", lambda _self, _pattern: fake_files)
+    monkeypatch.setattr(registry, "_load_dashboard", fake_load)
+
+    registry.discover_and_register()
+    assert calls == ["temperature", "mortgage"]
 
 
 if __name__ == "__main__":

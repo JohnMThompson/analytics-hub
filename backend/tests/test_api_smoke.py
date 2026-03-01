@@ -95,3 +95,24 @@ async def test_swim_summary_endpoint_smoke(client, monkeypatch):
     response = await client.get("/api/dashboards/swim_tracking/summary")
     assert response.status_code == 200
     assert response.json()["workout_count"] == 42
+
+
+@pytest.mark.asyncio
+async def test_home_office_temperature_current_conditions_smoke(client, monkeypatch):
+    dashboard = registry.dashboards.get("home_office_temperature")
+    if dashboard is None:
+        pytest.skip("Home office temperature dashboard is not registered")
+
+    async def fake_current_conditions(_engine):
+        return {"temperature_f": 66.92, "humidity": 42.4}
+
+    dashboard_module = __import__(
+        dashboard.__class__.__module__,
+        fromlist=["_placeholder"]
+    )
+    monkeypatch.setattr(dashboard_module, "get_current_conditions", fake_current_conditions)
+
+    response = await client.get("/api/dashboards/home_office_temperature/current_conditions")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["temperature_f"] == 66.92

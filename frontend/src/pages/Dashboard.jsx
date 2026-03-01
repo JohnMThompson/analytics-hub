@@ -7,6 +7,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useEffect } from 'react';
 import MortgageRates from './MortgageRates';
 import SwimTracking from './SwimTracking';
+import HomeOfficeTemperature from './HomeOfficeTemperature';
 import DashboardLayout from '../layouts/DashboardLayout';
 import { Card } from '../components/shared';
 
@@ -14,6 +15,7 @@ import { Card } from '../components/shared';
 const dashboardComponents = {
   mortgage_rates: MortgageRates,
   swim_tracking: SwimTracking,
+  home_office_temperature: HomeOfficeTemperature,
 };
 
 export default function Dashboard() {
