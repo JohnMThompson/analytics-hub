@@ -116,3 +116,25 @@ async def test_home_office_temperature_current_conditions_smoke(client, monkeypa
     assert response.status_code == 200
     payload = response.json()
     assert payload["temperature_f"] == 66.92
+
+
+@pytest.mark.asyncio
+async def test_halloween_summary_endpoint_smoke(client, monkeypatch):
+    dashboard = registry.dashboards.get("halloween_tracking")
+    if dashboard is None:
+        pytest.skip("Halloween dashboard is not registered")
+
+    async def fake_summary(_engine):
+        return {"latest_year": 2025, "latest_count": 144}
+
+    dashboard_module = __import__(
+        dashboard.__class__.__module__,
+        fromlist=["_placeholder"]
+    )
+    monkeypatch.setattr(dashboard_module, "get_summary", fake_summary)
+
+    response = await client.get("/api/dashboards/halloween_tracking/summary")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["latest_year"] == 2025
+    assert payload["latest_count"] == 144

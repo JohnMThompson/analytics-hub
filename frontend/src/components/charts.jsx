@@ -120,6 +120,7 @@ export function ColumnChartPanel({
               dataKey={bar.dataKey}
               name={bar.name || bar.dataKey}
               fill={getSeriesColor(bar.color, idx)}
+              stackId={bar.stackId}
               radius={[6, 6, 0, 0]}
             />
           ))}

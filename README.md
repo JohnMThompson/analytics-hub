@@ -83,6 +83,8 @@ DB_MORTGAGE_NAME=your-database
 # Future dashboards follow the same pattern
 DB_SWIM_HOST=...
 DB_SWIM_USER=...
+DB_HALLOWEEN_HOST=...
+DB_HALLOWEEN_USER=...
 ```
 
 ### Adding a New Dashboard
@@ -216,6 +218,12 @@ GET /api/dashboards/home_office_temperature/temperature_trend?days=365
 GET /api/dashboards/home_office_temperature/statistics?days=365
 ```
 
+Halloween tracking dashboard:
+```
+GET /api/dashboards/halloween_tracking/summary
+GET /api/dashboards/halloween_tracking/yearly_counts
+```
+
 ## Environment Variables
 
 Copy `.env.example` to `.env` and configure:
@@ -238,6 +246,11 @@ DB_RPI_USER=
 DB_RPI_PASSWORD=
 DB_RPI_NAME=rpi
 
+DB_HALLOWEEN_HOST=
+DB_HALLOWEEN_USER=
+DB_HALLOWEEN_PASSWORD=
+DB_HALLOWEEN_NAME=halloween
+
 # Application settings
 ENVIRONMENT=development
 DEBUG=true
@@ -245,6 +258,7 @@ LOG_LEVEL=INFO
 ENABLE_MORTGAGE_DASHBOARD=true
 ENABLE_SWIM_DASHBOARD=true
 ENABLE_RPI_DASHBOARD=true
+ENABLE_HALLOWEEN_DASHBOARD=true
 
 # Frontend API target (optional for local dev via Vite proxy)
 # Docker build uses this value from docker-compose build args.

@@ -26,6 +26,13 @@ export function formatSignedPercent(value, maximumFractionDigits = 2) {
   return `${sign}${formatDecimal(numeric, maximumFractionDigits)}%`;
 }
 
+export function formatSignedNumber(value, maximumFractionDigits = 0) {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return '—';
+  const numeric = Number(value);
+  const sign = numeric > 0 ? '+' : '';
+  return `${sign}${formatDecimal(numeric, maximumFractionDigits)}`;
+}
+
 export function formatDurationHours(totalHours) {
   if (totalHours === null || totalHours === undefined || Number.isNaN(Number(totalHours))) return '—';
   const totalMinutes = Math.round(Number(totalHours) * 60);
