@@ -34,6 +34,7 @@ services:
       - ENABLE_HALLOWEEN_DASHBOARD=${ENABLE_HALLOWEEN_DASHBOARD:-true}
       - ENVIRONMENT=${ENVIRONMENT:-development}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-*}
     networks:
       - ai-analytics
 

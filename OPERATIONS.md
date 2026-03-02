@@ -22,6 +22,8 @@ Interpretation:
 Dashboard registration is controlled by env flags:
 - `ENABLE_MORTGAGE_DASHBOARD`
 - `ENABLE_SWIM_DASHBOARD`
+- `ENABLE_RPI_DASHBOARD`
+- `ENABLE_HALLOWEEN_DASHBOARD`
 
 If a dashboard is enabled, required DB env vars must be present or startup fails fast.
 
@@ -79,7 +81,7 @@ If a recent change breaks readiness:
 3. Verify `/api/ready` is healthy for remaining enabled dashboards.
 4. Re-enable only after config or code fix is validated.
 
-## Deployment Note
+## Deployment
 
-Automated deployment from `main` is planned but not yet implemented.
-Use CI status plus manual deployment process until that workflow is added.
+- DigitalOcean deployment runbook: `docs/deploy-digitalocean.md`
+- Automated deployment workflow: `.github/workflows/deploy.yml`

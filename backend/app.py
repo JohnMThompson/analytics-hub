@@ -15,10 +15,18 @@ import uuid
 # Try flat imports first, fall back to backend.* namespace imports.
 try:
     from dashboards.registry import get_registry
-    from config import close_all_connections, configure_logging
+    from config import (
+        close_all_connections,
+        configure_logging,
+        get_cors_allowed_origins,
+    )
 except ImportError:
     from backend.dashboards.registry import get_registry
-    from backend.config import close_all_connections, configure_logging
+    from backend.config import (
+        close_all_connections,
+        configure_logging,
+        get_cors_allowed_origins,
+    )
 
 configure_logging()
 
@@ -42,10 +50,11 @@ app = FastAPI(
 )
 
 # Configure CORS for frontend communication
+allowed_origins = get_cors_allowed_origins()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure based on env in production
-    allow_credentials=True,
+    allow_origins=allowed_origins,
+    allow_credentials=allowed_origins != ["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )

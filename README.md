@@ -146,8 +146,11 @@ Current CI checks:
 - Frontend production build: `cd frontend && npm ci && npm run build`
 - Backend Docker smoke test: build backend image, run container, verify `/api/health`
 
-Planned later (not implemented yet):
-- Automatic deployment from `main` after CI passes
+Deployment automation:
+- `.github/workflows/deploy.yml` deploys to a DigitalOcean droplet on pushes to `main` using SSH secrets.
+
+Deployment runbook:
+- DigitalOcean droplet + Caddy + GitHub Actions: `docs/deploy-digitalocean.md`
 
 ## Backlog
 
@@ -255,6 +258,7 @@ DB_HALLOWEEN_NAME=halloween
 ENVIRONMENT=development
 DEBUG=true
 LOG_LEVEL=INFO
+CORS_ALLOWED_ORIGINS=*
 ENABLE_MORTGAGE_DASHBOARD=true
 ENABLE_SWIM_DASHBOARD=true
 ENABLE_RPI_DASHBOARD=true
@@ -263,6 +267,9 @@ ENABLE_HALLOWEEN_DASHBOARD=true
 # Frontend API target (optional for local dev via Vite proxy)
 # Docker build uses this value from docker-compose build args.
 VITE_API_URL=http://localhost:8000
+
+# Public hostname for production Caddy reverse-proxy
+APP_DOMAIN=analytics.example.com
 ```
 
 ## Troubleshooting
@@ -282,6 +289,9 @@ VITE_API_URL=http://localhost:8000
 ### Docker Compose issues
 - Run `docker-compose down` then `docker-compose up --build` to rebuild
 - Check logs: `docker-compose logs -f backend` or `docker-compose logs -f frontend`
+
+### Production deployment
+- Follow `docs/deploy-digitalocean.md` for droplet setup, TLS, and CI/CD deployment.
 
 ## Contributing
 
