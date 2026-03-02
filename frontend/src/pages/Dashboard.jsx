@@ -8,6 +8,7 @@ import { useEffect } from 'react';
 import MortgageRates from './MortgageRates';
 import SwimTracking from './SwimTracking';
 import HomeOfficeTemperature from './HomeOfficeTemperature';
+import HalloweenTracking from './HalloweenTracking';
 import DashboardLayout from '../layouts/DashboardLayout';
 import { Card } from '../components/shared';
 
@@ -16,6 +17,7 @@ const dashboardComponents = {
   mortgage_rates: MortgageRates,
   swim_tracking: SwimTracking,
   home_office_temperature: HomeOfficeTemperature,
+  halloween_tracking: HalloweenTracking,
 };
 
 export default function Dashboard() {

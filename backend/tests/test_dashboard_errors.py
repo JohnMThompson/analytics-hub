@@ -7,13 +7,17 @@ from fastapi import HTTPException
 try:
     import dashboards.mortgage as mortgage_module
     import dashboards.swim as swim_module
+    import dashboards.halloween as halloween_module
     from dashboards.mortgage import MortgageRateDashboard
     from dashboards.swim import SwimTrackingDashboard
+    from dashboards.halloween import HalloweenDashboard
 except ImportError:
     import backend.dashboards.mortgage as mortgage_module
     import backend.dashboards.swim as swim_module
+    import backend.dashboards.halloween as halloween_module
     from backend.dashboards.mortgage import MortgageRateDashboard
     from backend.dashboards.swim import SwimTrackingDashboard
+    from backend.dashboards.halloween import HalloweenDashboard
 
 
 @pytest.mark.asyncio
@@ -48,3 +52,20 @@ async def test_swim_endpoint_raises_http_500_on_failure(monkeypatch):
 
     assert exc_info.value.status_code == 500
     assert "swim_tracking.summary failed" in exc_info.value.detail
+
+
+@pytest.mark.asyncio
+async def test_halloween_endpoint_raises_http_500_on_failure(monkeypatch):
+    dashboard = HalloweenDashboard.__new__(HalloweenDashboard)
+    dashboard.engine = object()
+
+    async def raise_error(_engine):
+        raise RuntimeError("db failure")
+
+    monkeypatch.setattr(halloween_module, "get_summary", raise_error)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await dashboard.get_summary_endpoint()
+
+    assert exc_info.value.status_code == 500
+    assert "halloween_tracking.summary failed" in exc_info.value.detail

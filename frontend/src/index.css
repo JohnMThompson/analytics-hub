@@ -91,6 +91,19 @@
     --chart-5: #7c3aed;
   }
 
+  .theme-halloween {
+    --accent-50: #fff7ed;
+    --accent-100: #ffedd5;
+    --accent-500: #ea580c;
+    --accent-600: #c2410c;
+    --accent-700: #9a3412;
+    --chart-1: #ea580c;
+    --chart-2: #f59e0b;
+    --chart-3: #b45309;
+    --chart-4: #7c2d12;
+    --chart-5: #be123c;
+  }
+
   html {
     scroll-behavior: smooth;
   }

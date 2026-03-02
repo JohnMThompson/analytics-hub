@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     enable_mortgage_dashboard: bool = True
     enable_swim_dashboard: bool = True
     enable_rpi_dashboard: bool = True
+    enable_halloween_dashboard: bool = True
     
     # Mortgage Database (required at runtime, but optional for testing)
     db_mortgage_host: Optional[str] = None
@@ -42,6 +43,13 @@ class Settings(BaseSettings):
     db_rpi_password: Optional[str] = None
     db_rpi_name: Optional[str] = None
     db_rpi_port: int = 3306
+
+    # Halloween Database
+    db_halloween_host: Optional[str] = None
+    db_halloween_user: Optional[str] = None
+    db_halloween_password: Optional[str] = None
+    db_halloween_name: Optional[str] = None
+    db_halloween_port: int = 3306
     
     model_config = SettingsConfigDict(
         env_file=(".env", "../.env"),
@@ -99,6 +107,12 @@ def _validate_required_settings(database: str) -> None:
             "DB_RPI_USER (or DB_MORTGAGE_USER)": rpi["user"],
             "DB_RPI_NAME": rpi["name"],
         }
+    elif database == "halloween":
+        required = {
+            "DB_HALLOWEEN_HOST": settings.db_halloween_host,
+            "DB_HALLOWEEN_USER": settings.db_halloween_user,
+            "DB_HALLOWEEN_NAME": settings.db_halloween_name,
+        }
     else:
         raise ValueError(f"Unknown database: {database}")
 
@@ -152,6 +166,14 @@ def get_db_connection_string(database: str) -> str:
             f"{rpi['password']}@"
             f"{rpi['host']}:{rpi['port']}/"
             f"{rpi['name']}"
+        )
+    elif database == "halloween":
+        _validate_required_settings("halloween")
+        return (
+            f"mysql+pymysql://{settings.db_halloween_user}:"
+            f"{settings.db_halloween_password}@"
+            f"{settings.db_halloween_host}:{settings.db_halloween_port}/"
+            f"{settings.db_halloween_name}"
         )
     else:
         raise ValueError(f"Unknown database: {database}")
@@ -219,6 +241,15 @@ def get_db_config(database: str) -> dict:
             "password": rpi["password"],
             "database": rpi["name"],
             "port": rpi["port"],
+        }
+    elif database == "halloween":
+        _validate_required_settings("halloween")
+        return {
+            "host": settings.db_halloween_host,
+            "user": settings.db_halloween_user,
+            "password": settings.db_halloween_password,
+            "database": settings.db_halloween_name,
+            "port": settings.db_halloween_port,
         }
     else:
         raise ValueError(f"Unknown database: {database}")
