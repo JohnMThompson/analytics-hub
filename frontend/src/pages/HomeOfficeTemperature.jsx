@@ -65,7 +65,7 @@ export default function HomeOfficeTemperature() {
   return (
     <DashboardLayout
       title="Home Office Temperature"
-      subtitle="Data gathered by a DHT22 sensor on a Raspberry Pi 4B. The temperature is sensed once per minute, however the sensor burned out on April 21st and the project was concluded."
+      subtitle="Data gathered by a DHT22 sensor on a Raspberry Pi 4B. The temperature is sensed once per minute, however the sensor burned out on April 21st, 2022."
       controls={(
         <Card className="mb-6 p-4">
           <div className="flex flex-wrap items-center gap-3">
