@@ -36,3 +36,7 @@ pnpm-debug.log*
 Thumbs.db
 .idea/
 .vscode/
+
+# Local SSH keys
+do-droplet
+do-droplet.pub
