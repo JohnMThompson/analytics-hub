@@ -10,18 +10,17 @@ import {
   LoadingSpinner,
   ErrorAlert,
   MetricCard,
-  Card,
   DashboardSection,
   KpiGrid,
-  DataTablePanel,
 } from '../components/shared';
-import { ColumnChartPanel } from '../components/charts';
-import DataTable from '../components/table';
+import { BarChartPanel, ColumnChartPanel, LineChartPanel } from '../components/charts';
 import { formatDecimal, formatInteger, formatSignedNumber } from '../utils/formatters';
 
 export default function HalloweenTracking() {
   const [summary, setSummary] = useState(null);
   const [yearlyCounts, setYearlyCounts] = useState([]);
+  const [cumulativeByMinute, setCumulativeByMinute] = useState({ years: [], points: [] });
+  const [quarterHourBreakdown, setQuarterHourBreakdown] = useState({ years: [], points: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -38,13 +37,23 @@ export default function HalloweenTracking() {
       setLoading(true);
       setError(null);
 
-      const [summaryData, yearlyData] = await Promise.all([
+      const [summaryData, yearlyData, cumulativeData, quarterHourData] = await Promise.all([
         apiClient.getDashboardEndpoint('halloween_tracking', 'summary'),
         apiClient.getDashboardEndpoint('halloween_tracking', 'yearly_counts'),
+        apiClient.getDashboardEndpoint('halloween_tracking', 'cumulative_by_minute'),
+        apiClient.getDashboardEndpoint('halloween_tracking', 'quarter_hour_breakdown'),
       ]);
 
       setSummary(summaryData);
       setYearlyCounts(Array.isArray(yearlyData) ? yearlyData : []);
+      setCumulativeByMinute({
+        years: Array.isArray(cumulativeData?.years) ? cumulativeData.years : [],
+        points: Array.isArray(cumulativeData?.points) ? cumulativeData.points : [],
+      });
+      setQuarterHourBreakdown({
+        years: Array.isArray(quarterHourData?.years) ? quarterHourData.years : [],
+        points: Array.isArray(quarterHourData?.points) ? quarterHourData.points : [],
+      });
     } catch (err) {
       setError(err);
     } finally {
@@ -56,33 +65,37 @@ export default function HalloweenTracking() {
 
   const chartData = yearlyCounts.map((entry) => ({
     ...entry,
-    year_label: String(entry.year),
+    year_label: String(entry.year || ''),
+  }));
+  const yearlyCountBars = [...chartData].sort((a, b) => (b.count || 0) - (a.count || 0));
+
+  const cumulativeLines = cumulativeByMinute.years.map((year, idx) => ({
+    dataKey: String(year),
+    name: String(year),
+    color: `var(--chart-${(idx % 5) + 1})`,
+    dot: false,
+    strokeWidth: 2.5,
+    type: 'monotone',
   }));
 
-  const tableColumns = [
-    { key: 'year', header: 'Year' },
-    { key: 'count', header: 'Trick-or-Treaters', align: 'right', tone: 'primary', render: (row) => formatInteger(row.count) },
-  ];
+  const quarterHourBars = quarterHourBreakdown.years.map((year, idx) => ({
+    dataKey: String(year),
+    name: String(year),
+    color: `var(--chart-${(idx % 5) + 1})`,
+    stackId: 'years',
+  }));
 
   return (
     <DashboardLayout
       title="Halloween Tracking"
       subtitle="Year-over-year trick-or-treater counts"
       themeClass="theme-halloween"
-      controls={(
-        <Card className="mb-6 p-4">
-          <p className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>
-            Source table: <span style={{ color: 'var(--text-primary)' }}>halloween.halloween_tracking</span>
-          </p>
-        </Card>
-      )}
     >
       {error && <ErrorAlert error={error} onRetry={fetchData} />}
 
       {summary && (
         <DashboardSection title="Overview">
-          <KpiGrid columns={4}>
-            <MetricCard label="Years Tracked" value={formatInteger(summary.years_tracked)} />
+          <KpiGrid columns={3}>
             <MetricCard label="Latest Year Count" value={summary.latest_count == null ? '—' : formatInteger(summary.latest_count)} secondary={summary.latest_year ? `Year ${summary.latest_year}` : ''} variant="emphasis" />
             <MetricCard label="Average per Year" value={formatDecimal(summary.average_per_year, 1)} />
             <MetricCard
@@ -95,30 +108,50 @@ export default function HalloweenTracking() {
         </DashboardSection>
       )}
 
-      <DashboardSection title="Trend">
-        <ColumnChartPanel
-          data={chartData}
+      <DashboardSection title="Trick-or-treater by year">
+        <BarChartPanel
+          data={yearlyCountBars}
           xKey="year_label"
-          bars={[{ dataKey: 'count', name: 'Trick-or-Treaters', color: 'var(--chart-1)' }]}
-          yDomain={[0, 'auto']}
+          yKey="year_label"
+          barKey="count"
+          barName="Trick-or-Treaters"
           height={420}
+          yAxisWidth={80}
+          hideXAxis={true}
+          showBarValueLabels={true}
+          showLegend={false}
           valueFormatter={(value) => formatInteger(value)}
           labelFormatter={(label) => `Year: ${label}`}
           emptyMessage="No yearly halloween data available."
         />
       </DashboardSection>
 
-      <DashboardSection title="Yearly Counts">
-        <DataTablePanel>
-          <DataTable
-            columns={tableColumns}
-            rows={[...yearlyCounts].sort((a, b) => (b.year || 0) - (a.year || 0))}
-            rowKey={(row) => String(row.year)}
-            emptyMessage="No halloween yearly count records available."
-          />
-        </DataTablePanel>
+      <DashboardSection title="Cumulative Trick-or-Treaters by Minute">
+        <LineChartPanel
+          data={cumulativeByMinute.points}
+          xKey="minute_label"
+          lines={cumulativeLines}
+          yDomain={[0, 'auto']}
+          height={420}
+          valueFormatter={(value) => formatInteger(value)}
+          labelFormatter={(label) => `Time: ${label}`}
+          emptyMessage="No minute-level cumulative data available."
+        />
       </DashboardSection>
+
+      <DashboardSection title="15-Minute Trick-or-Treater Increments">
+        <ColumnChartPanel
+          data={quarterHourBreakdown.points}
+          xKey="bucket_label"
+          bars={quarterHourBars}
+          yDomain={[0, 'auto']}
+          height={420}
+          valueFormatter={(value) => formatInteger(value)}
+          labelFormatter={(label) => `Time bucket: ${label}`}
+          emptyMessage="No 15-minute bucket data available."
+        />
+      </DashboardSection>
+
     </DashboardLayout>
   );
 }
-

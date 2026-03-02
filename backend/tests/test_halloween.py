@@ -6,9 +6,19 @@ from unittest.mock import Mock
 from datetime import datetime
 
 try:
-    from queries.halloween import get_yearly_counts, get_summary
+    from queries.halloween import (
+        get_cumulative_by_minute,
+        get_quarter_hour_breakdown,
+        get_summary,
+        get_yearly_counts,
+    )
 except ImportError:
-    from backend.queries.halloween import get_yearly_counts, get_summary
+    from backend.queries.halloween import (
+        get_cumulative_by_minute,
+        get_quarter_hour_breakdown,
+        get_summary,
+        get_yearly_counts,
+    )
 
 
 @pytest.mark.asyncio
@@ -80,3 +90,60 @@ async def test_get_summary_calculates_yoy_change():
     assert result["yoy_change"] == 25
     assert result["yoy_change_percent"] == 25.0
 
+
+@pytest.mark.asyncio
+async def test_get_cumulative_by_minute_uses_event_stream():
+    rows = [
+        {"event_year": 2024, "event_time": "18:00:01", "counter_value": 1, "increment": 1},
+        {"event_year": 2024, "event_time": "18:00:20", "counter_value": 2, "increment": 1},
+        {"event_year": 2024, "event_time": "18:15:00", "counter_value": 3, "increment": 1},
+        {"event_year": 2025, "event_time": "18:00:10", "counter_value": 1, "increment": 1},
+        {"event_year": 2025, "event_time": "18:15:10", "counter_value": 2, "increment": 1},
+    ]
+
+    mock_engine = Mock()
+    mock_conn = Mock()
+    mock_engine.connect.return_value.__enter__ = Mock(return_value=mock_conn)
+    mock_engine.connect.return_value.__exit__ = Mock(return_value=None)
+    mock_execute_result = Mock()
+    mock_execute_result.mappings.return_value.all.return_value = rows
+    mock_conn.execute.return_value = mock_execute_result
+
+    result = await get_cumulative_by_minute(mock_engine)
+
+    assert result["years"] == [2024, 2025]
+    assert result["points"][0]["minute_label"] == "18:00"
+    assert result["points"][0]["2024"] == 2
+    assert result["points"][0]["2025"] == 1
+    assert result["points"][1]["minute_label"] == "18:15"
+    assert result["points"][1]["2024"] == 3
+    assert result["points"][1]["2025"] == 2
+
+
+@pytest.mark.asyncio
+async def test_get_quarter_hour_breakdown_groups_by_bucket():
+    rows = [
+        {"event_year": 2024, "event_time": "18:01:00", "increment": 1},
+        {"event_year": 2024, "event_time": "18:10:00", "increment": 2},
+        {"event_year": 2024, "event_time": "18:16:00", "increment": 3},
+        {"event_year": 2025, "event_time": "18:05:00", "increment": 1},
+        {"event_year": 2025, "event_time": "18:22:00", "increment": 4},
+    ]
+
+    mock_engine = Mock()
+    mock_conn = Mock()
+    mock_engine.connect.return_value.__enter__ = Mock(return_value=mock_conn)
+    mock_engine.connect.return_value.__exit__ = Mock(return_value=None)
+    mock_execute_result = Mock()
+    mock_execute_result.mappings.return_value.all.return_value = rows
+    mock_conn.execute.return_value = mock_execute_result
+
+    result = await get_quarter_hour_breakdown(mock_engine)
+
+    assert result["years"] == [2024, 2025]
+    assert result["points"][0]["bucket_label"] == "18:00"
+    assert result["points"][0]["2024"] == 3
+    assert result["points"][0]["2025"] == 1
+    assert result["points"][1]["bucket_label"] == "18:15"
+    assert result["points"][1]["2024"] == 3
+    assert result["points"][1]["2025"] == 4

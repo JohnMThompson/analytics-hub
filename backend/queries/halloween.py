@@ -1,7 +1,9 @@
 """
 Reusable SQL query functions for halloween trick-or-treater tracking.
 """
-from typing import Any, Dict, List, Optional
+from collections import defaultdict
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional, Tuple
 
 from sqlalchemy import Engine, text
 
@@ -32,6 +34,19 @@ def _safe_int(value: Any) -> Optional[int]:
         return int(value)
     except (TypeError, ValueError):
         return None
+
+
+def _minutes_to_label(minutes_since_midnight: int) -> str:
+    hours = minutes_since_midnight // 60
+    minutes = minutes_since_midnight % 60
+    return f"{hours:02d}:{minutes:02d}"
+
+
+def _label_to_minutes(label: str) -> int:
+    parts = label.split(":")
+    if len(parts) != 2:
+        return -1
+    return int(parts[0]) * 60 + int(parts[1])
 
 
 def _resolve_year(record: Dict[str, Any]) -> Optional[int]:
@@ -66,6 +81,50 @@ def _resolve_count(record: Dict[str, Any], year_column: Optional[str]) -> Option
     if numeric_candidates:
         return numeric_candidates[0][1]
     return None
+
+
+def _resolve_minutes_since_midnight(record: Dict[str, Any]) -> Optional[int]:
+    event_ts = record.get("event_ts")
+    if hasattr(event_ts, "hour") and hasattr(event_ts, "minute"):
+        return int(event_ts.hour) * 60 + int(event_ts.minute)
+
+    event_time = record.get("event_time")
+    if isinstance(event_time, timedelta):
+        return int(event_time.total_seconds() // 60)
+    if isinstance(event_time, str):
+        parts = event_time.split(":")
+        if len(parts) >= 2 and parts[0].isdigit() and parts[1].isdigit():
+            return int(parts[0]) * 60 + int(parts[1])
+
+    created_at = record.get("created_at")
+    if hasattr(created_at, "hour") and hasattr(created_at, "minute"):
+        return int(created_at.hour) * 60 + int(created_at.minute)
+    return None
+
+
+def _extract_normalized_events(engine: Engine) -> List[Dict[str, Any]]:
+    query = text(f"SELECT * FROM {TABLE_NAME}")
+    with engine.connect() as conn:
+        rows = conn.execute(query).mappings().all()
+
+    events: List[Dict[str, Any]] = []
+    for row in rows:
+        record = _normalize_record(dict(row))
+        year = _resolve_year(record)
+        minute = _resolve_minutes_since_midnight(record)
+        counter_value = _safe_int(record.get("counter_value"))
+        increment = _safe_int(record.get("increment"))
+        if year is None:
+            continue
+        events.append(
+            {
+                "year": year,
+                "minute": minute,
+                "counter_value": counter_value,
+                "increment": increment,
+            }
+        )
+    return events
 
 
 async def get_yearly_counts(engine: Engine) -> List[Dict[str, Any]]:
@@ -110,6 +169,92 @@ async def get_yearly_counts(engine: Engine) -> List[Dict[str, Any]]:
         use_max = totals["has_max_metric"] and totals["max"] is not None
         output.append({"year": year, "count": totals["max"] if use_max else totals["sum"]})
     return output
+
+
+def _derive_increments(events: List[Dict[str, Any]]) -> List[Tuple[int, int, int]]:
+    by_year: Dict[int, List[Dict[str, Any]]] = defaultdict(list)
+    for event in events:
+        if event.get("minute") is None:
+            continue
+        by_year[event["year"]].append(event)
+
+    increments: List[Tuple[int, int, int]] = []
+    for year, year_events in by_year.items():
+        year_events.sort(
+            key=lambda item: (
+                item["minute"],
+                item["counter_value"] if item["counter_value"] is not None else -1,
+            )
+        )
+        prior_counter: Optional[int] = None
+        for event in year_events:
+            if event["increment"] is not None:
+                increment = max(event["increment"], 0)
+            elif event["counter_value"] is not None:
+                if prior_counter is None:
+                    increment = max(event["counter_value"], 0)
+                else:
+                    increment = max(event["counter_value"] - prior_counter, 0)
+            else:
+                continue
+            if event["counter_value"] is not None:
+                prior_counter = event["counter_value"]
+            increments.append((year, int(event["minute"]), int(increment)))
+    return increments
+
+
+async def get_cumulative_by_minute(engine: Engine) -> Dict[str, Any]:
+    """
+    Return minute-level cumulative counts with one series per year.
+    """
+    events = _extract_normalized_events(engine)
+    increments = _derive_increments(events)
+    if not increments:
+        return {"years": [], "points": []}
+
+    years = sorted({year for year, _, _ in increments})
+    minutes = sorted({minute for _, minute, _ in increments})
+    increments_by_year_minute: Dict[int, Dict[int, int]] = defaultdict(lambda: defaultdict(int))
+    for year, minute, increment in increments:
+        increments_by_year_minute[year][minute] += increment
+
+    points: List[Dict[str, Any]] = []
+    running_totals = {year: 0 for year in years}
+    for minute in minutes:
+        point = {"minute_label": _minutes_to_label(minute)}
+        for year in years:
+            running_totals[year] += increments_by_year_minute[year].get(minute, 0)
+            point[str(year)] = running_totals[year]
+        points.append(point)
+
+    return {"years": years, "points": points}
+
+
+async def get_quarter_hour_breakdown(engine: Engine) -> Dict[str, Any]:
+    """
+    Return 15-minute bucket counts with one stacked series per year.
+    """
+    events = _extract_normalized_events(engine)
+    increments = _derive_increments(events)
+    if not increments:
+        return {"years": [], "points": []}
+
+    years = sorted({year for year, _, _ in increments})
+    buckets = sorted({(minute // 15) * 15 for _, minute, _ in increments})
+    buckets_by_year: Dict[int, Dict[int, int]] = defaultdict(lambda: defaultdict(int))
+    for year, minute, increment in increments:
+        bucket = (minute // 15) * 15
+        buckets_by_year[year][bucket] += increment
+
+    points: List[Dict[str, Any]] = []
+    for bucket in buckets:
+        point = {"bucket_label": _minutes_to_label(bucket)}
+        for year in years:
+            point[str(year)] = buckets_by_year[year].get(bucket, 0)
+        points.append(point)
+
+    points.sort(key=lambda point: _label_to_minutes(point["bucket_label"]))
+    return {"years": years, "points": points}
 
 
 async def get_summary(engine: Engine) -> Dict[str, Any]:
