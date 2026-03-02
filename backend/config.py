@@ -4,7 +4,7 @@ Configuration management for database connections and app settings
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy import create_engine, Engine
 from sqlalchemy.pool import QueuePool
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 import logging
 
 logger = logging.getLogger(__name__)
@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     environment: str = "development"
     debug: bool = True
     log_level: str = "INFO"
+    cors_allowed_origins: str = "*"
     enable_mortgage_dashboard: bool = True
     enable_swim_dashboard: bool = True
     enable_rpi_dashboard: bool = True
@@ -84,6 +85,21 @@ def configure_logging() -> None:
         format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
         force=True,
     )
+
+
+def get_cors_allowed_origins() -> List[str]:
+    """
+    Parse configured CORS origins.
+
+    Supports:
+    - "*" (default) for permissive local/dev usage
+    - comma-separated origins for stricter production setups
+    """
+    raw_value = (settings.cors_allowed_origins or "*").strip()
+    if raw_value == "*":
+        return ["*"]
+    origins = [origin.strip() for origin in raw_value.split(",") if origin.strip()]
+    return origins or ["*"]
 
 
 def _validate_required_settings(database: str) -> None:
