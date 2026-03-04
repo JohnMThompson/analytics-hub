@@ -3,10 +3,45 @@
  * Shows all available dashboards
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import apiClient from '../services/api';
 import { LoadingSpinner, ErrorAlert } from '../components/shared';
+import DashboardThumbnail from '../components/DashboardThumbnail';
+
+const DASHBOARD_DISPLAY_ORDER = [
+  'mortgage_rates',
+  'swim_tracking',
+  'halloween_tracking',
+  'home_office_temperature',
+];
+
+export function sortDashboardsByPreferredOrder(dashboards) {
+  const orderMap = new Map(DASHBOARD_DISPLAY_ORDER.map((id, index) => [id, index]));
+  return [...dashboards].sort((a, b) => {
+    const aRank = orderMap.has(a.id) ? orderMap.get(a.id) : Number.MAX_SAFE_INTEGER;
+    const bRank = orderMap.has(b.id) ? orderMap.get(b.id) : Number.MAX_SAFE_INTEGER;
+
+    if (aRank !== bRank) return aRank - bRank;
+    return 0;
+  });
+}
+
+export function DashboardCardContent({ dashboard, priority = false }) {
+  return (
+    <>
+      <DashboardThumbnail dashboardId={dashboard.id} title={dashboard.title} priority={priority} />
+      <div className="mb-3 mt-5 flex items-center justify-between gap-2">
+        <h2 className="text-xl font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+          {dashboard.title}
+        </h2>
+      </div>
+      <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+        {dashboard.description}
+      </p>
+    </>
+  );
+}
 
 export default function Home() {
   const [dashboards, setDashboards] = useState([]);
@@ -21,6 +56,30 @@ export default function Home() {
     document.title = 'Analytics and Reporting Hub | AI Analytics';
   }, []);
 
+  const priorityDashboardIds = useMemo(() => dashboards.slice(0, 3).map((dashboard) => dashboard.id), [dashboards]);
+
+  useEffect(() => {
+    if (priorityDashboardIds.length === 0) return undefined;
+
+    // Warm top-row dashboard preview routes so thumbnails appear sooner.
+    const links = priorityDashboardIds.map((dashboardId) => {
+      const link = document.createElement('link');
+      link.rel = 'prefetch';
+      link.as = 'document';
+      link.href = `/dashboard/${dashboardId}?thumbnail=1`;
+      document.head.appendChild(link);
+      return link;
+    });
+
+    return () => {
+      links.forEach((link) => {
+        if (document.head.contains(link)) {
+          document.head.removeChild(link);
+        }
+      });
+    };
+  }, [priorityDashboardIds]);
+
   const fetchDashboards = async () => {
     try {
       setLoading(true);
@@ -28,7 +87,8 @@ export default function Home() {
       const response = await apiClient.getDashboards();
       // API returns { dashboards: [...], total: ... }
       const data = response.dashboards || [];
-      setDashboards(Array.isArray(data) ? data : []);
+      const normalizedData = Array.isArray(data) ? data : [];
+      setDashboards(sortDashboardsByPreferredOrder(normalizedData));
     } catch (err) {
       setError(err);
       console.error('Failed to fetch dashboards:', err);
@@ -80,21 +140,13 @@ export default function Home() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {dashboards.map((dashboard) => (
+            {dashboards.map((dashboard, index) => (
               <Link
                 key={dashboard.id}
                 to={`/dashboard/${dashboard.id}`}
-                className="dashboard-panel p-6 cursor-pointer transition-transform duration-200 hover:-translate-y-1"
+                className="dashboard-panel dashboard-nav-card p-6 cursor-pointer transition-transform duration-200 hover:-translate-y-1"
               >
-                <div className="mb-3 flex items-center justify-between gap-2">
-                  <h2 className="text-xl font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
-                    {dashboard.title}
-                  </h2>
-                </div>
-                <p className="text-sm mb-5" style={{ color: 'var(--text-secondary)' }}>
-                  {dashboard.description}
-                </p>
-                <span className="dashboard-badge">View Dashboard</span>
+                <DashboardCardContent dashboard={dashboard} priority={index < 3} />
               </Link>
             ))}
           </div>
