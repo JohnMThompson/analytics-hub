@@ -16,6 +16,13 @@ const DASHBOARD_DISPLAY_ORDER = [
   'home_office_temperature',
 ];
 
+const DASHBOARD_ACCENT_COLORS = {
+  mortgage_rates: '#16a34a',
+  swim_tracking: '#2563eb',
+  halloween_tracking: '#ea580c',
+  home_office_temperature: '#7c3aed',
+};
+
 export function sortDashboardsByPreferredOrder(dashboards) {
   const orderMap = new Map(DASHBOARD_DISPLAY_ORDER.map((id, index) => [id, index]));
   return [...dashboards].sort((a, b) => {
@@ -25,6 +32,14 @@ export function sortDashboardsByPreferredOrder(dashboards) {
     if (aRank !== bRank) return aRank - bRank;
     return 0;
   });
+}
+
+export function getDashboardAccentColor(dashboard) {
+  const preferredAccent = DASHBOARD_ACCENT_COLORS[dashboard?.id];
+  if (preferredAccent) return preferredAccent;
+  const dashboardColor = dashboard?.colors?.accent;
+  if (dashboardColor) return dashboardColor;
+  return 'var(--accent-500)';
 }
 
 export function DashboardCardContent({ dashboard, priority = false }) {
@@ -145,6 +160,7 @@ export default function Home() {
                 key={dashboard.id}
                 to={`/dashboard/${dashboard.id}`}
                 className="dashboard-panel dashboard-nav-card p-6 cursor-pointer transition-transform duration-200 hover:-translate-y-1"
+                style={{ '--card-accent': getDashboardAccentColor(dashboard) }}
               >
                 <DashboardCardContent dashboard={dashboard} priority={index < 3} />
               </Link>
