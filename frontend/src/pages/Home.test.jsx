@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { DashboardCardContent, sortDashboardsByPreferredOrder } from './Home';
+import { DashboardCardContent, getDashboardAccentColor, sortDashboardsByPreferredOrder } from './Home';
 
 describe('sortDashboardsByPreferredOrder', () => {
   test('orders known dashboards and appends unknown dashboards at the end', () => {
@@ -20,6 +20,14 @@ describe('sortDashboardsByPreferredOrder', () => {
       'home_office_temperature',
       'new_dashboard',
     ]);
+  });
+});
+
+describe('getDashboardAccentColor', () => {
+  test('prefers known landing accent map and falls back to API accent for unknown dashboards', () => {
+    expect(getDashboardAccentColor({ id: 'halloween_tracking', colors: {} })).toBe('#ea580c');
+    expect(getDashboardAccentColor({ id: 'swim_tracking', colors: { accent: '#123456' } })).toBe('#2563eb');
+    expect(getDashboardAccentColor({ id: 'custom', colors: { accent: '#123456' } })).toBe('#123456');
   });
 });
 

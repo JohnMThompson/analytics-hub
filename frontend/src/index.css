@@ -66,29 +66,42 @@
   }
 
   .theme-mortgage {
-    --accent-50: #ecfeff;
-    --accent-100: #cffafe;
-    --accent-500: #0891b2;
-    --accent-600: #0e7490;
-    --accent-700: #155e75;
-    --chart-1: #0891b2;
-    --chart-2: #0f766e;
-    --chart-3: #0369a1;
-    --chart-4: #ca8a04;
-    --chart-5: #be123c;
+    --accent-50: #f0fdf4;
+    --accent-100: #dcfce7;
+    --accent-500: #16a34a;
+    --accent-600: #15803d;
+    --accent-700: #166534;
+    --chart-1: #16a34a;
+    --chart-2: #15803d;
+    --chart-3: #22c55e;
+    --chart-4: #0f766e;
+    --chart-5: #1f2937;
   }
 
   .theme-swim {
     --accent-50: #eff6ff;
     --accent-100: #dbeafe;
-    --accent-500: #1d4ed8;
-    --accent-600: #1e40af;
+    --accent-500: #2563eb;
+    --accent-600: #1d4ed8;
     --accent-700: #1e3a8a;
-    --chart-1: #1d4ed8;
-    --chart-2: #0f766e;
-    --chart-3: #ea580c;
-    --chart-4: #0284c7;
-    --chart-5: #7c3aed;
+    --chart-1: #2563eb;
+    --chart-2: #1d4ed8;
+    --chart-3: #0284c7;
+    --chart-4: #06b6d4;
+    --chart-5: #0f172a;
+  }
+
+  .theme-temperature {
+    --accent-50: #f5f3ff;
+    --accent-100: #ede9fe;
+    --accent-500: #7c3aed;
+    --accent-600: #6d28d9;
+    --accent-700: #5b21b6;
+    --chart-1: #7c3aed;
+    --chart-2: #8b5cf6;
+    --chart-3: #a78bfa;
+    --chart-4: #4c1d95;
+    --chart-5: #1f2937;
   }
 
   .theme-halloween {
@@ -98,10 +111,10 @@
     --accent-600: #c2410c;
     --accent-700: #9a3412;
     --chart-1: #ea580c;
-    --chart-2: #f59e0b;
-    --chart-3: #b45309;
-    --chart-4: #7c2d12;
-    --chart-5: #be123c;
+    --chart-2: #f97316;
+    --chart-3: #f59e0b;
+    --chart-4: #c2410c;
+    --chart-5: #7c2d12;
   }
 
   html {
@@ -202,6 +215,12 @@
 
   .dashboard-content-compact {
     @apply max-w-none px-3 py-3;
+  }
+
+  .dashboard-nav-card {
+    position: relative;
+    border-top-width: 3px;
+    border-top-color: color-mix(in srgb, var(--card-accent, var(--accent-500)) 72%, #ffffff 28%);
   }
 
   .dashboard-nav-card:hover .dashboard-thumbnail {
