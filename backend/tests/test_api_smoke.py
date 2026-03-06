@@ -138,3 +138,36 @@ async def test_halloween_summary_endpoint_smoke(client, monkeypatch):
     payload = response.json()
     assert payload["latest_year"] == 2025
     assert payload["latest_count"] == 144
+
+
+@pytest.mark.asyncio
+async def test_dakota_data_endpoint_smoke(client, monkeypatch):
+    dashboard = registry.dashboards.get("dakota_concert_calendar")
+    if dashboard is None:
+        pytest.skip("Dakota dashboard is not registered")
+
+    async def fake_upcoming_events(_engine):
+        return [
+            {
+                "id": 1,
+                "event_date": "2026-03-09",
+                "event_time": "7:00 PM",
+                "performer_name": "Sample Performer",
+                "genre": "Jazz",
+                "description_short": "Sample description",
+                "scraped_at": "2026-03-06T19:42:08",
+                "updated_at": "2026-03-06T19:50:06",
+            }
+        ]
+
+    dashboard_module = __import__(
+        dashboard.__class__.__module__,
+        fromlist=["_placeholder"]
+    )
+    monkeypatch.setattr(dashboard_module, "get_upcoming_events", fake_upcoming_events)
+
+    response = await client.get("/api/dashboards/dakota_concert_calendar/data")
+    assert response.status_code == 200
+    payload = response.json()
+    assert "events" in payload
+    assert payload["events"][0]["performer_name"] == "Sample Performer"

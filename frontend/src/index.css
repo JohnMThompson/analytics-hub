@@ -117,6 +117,19 @@
     --chart-5: #7c2d12;
   }
 
+  .theme-dakota {
+    --accent-50: #eff9ff;
+    --accent-100: #d9f1ff;
+    --accent-500: #00AEEF;
+    --accent-600: #0094cc;
+    --accent-700: #0076a3;
+    --chart-1: #00AEEF;
+    --chart-2: #0094cc;
+    --chart-3: #0076a3;
+    --chart-4: #38bdf8;
+    --chart-5: #0f172a;
+  }
+
   html {
     scroll-behavior: smooth;
   }
@@ -288,5 +301,37 @@
   .focus-ring {
     @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2;
     --tw-ring-color: var(--focus-ring);
+  }
+
+  .print-only {
+    display: none;
+  }
+
+  @media print {
+    .no-print {
+      display: none !important;
+    }
+
+    .screen-only {
+      display: none !important;
+    }
+
+    .print-only {
+      display: inline !important;
+    }
+
+    .dashboard-header,
+    .dashboard-footer {
+      display: none !important;
+    }
+
+    .dashboard-content {
+      max-width: none !important;
+      padding: 0 !important;
+    }
+
+    .dashboard-panel {
+      box-shadow: none !important;
+    }
   }
 }
