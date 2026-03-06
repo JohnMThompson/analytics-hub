@@ -39,6 +39,7 @@ export default function DakotaConcertCalendar() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expandedDescriptions, setExpandedDescriptions] = useState(() => new Set());
+  const [selectedGenre, setSelectedGenre] = useState('all');
 
   useEffect(() => {
     document.title = 'Dakota Concert Calendar | AI Analytics';
@@ -87,7 +88,8 @@ export default function DakotaConcertCalendar() {
         key: 'description_short',
         header: 'Description',
         tone: 'secondary',
-        className: 'whitespace-normal break-words',
+        headerClassName: 'print-hide-column',
+        className: 'whitespace-normal break-words print-hide-column',
         render: (row) => {
           const description = row?.description_short || '—';
           const { text: preview, isTruncated } = truncateDescription(description);
@@ -95,8 +97,7 @@ export default function DakotaConcertCalendar() {
 
           return (
             <div className="whitespace-normal break-words">
-              <span className="screen-only">{isExpanded ? description : preview}</span>
-              <span className="print-only">{preview}</span>
+              <span>{isExpanded ? description : preview}</span>
               {isTruncated && (
                 <button
                   type="button"
@@ -128,6 +129,20 @@ export default function DakotaConcertCalendar() {
     [events],
   );
 
+  const genreOptions = useMemo(() => {
+    const values = new Set();
+    events.forEach((event) => {
+      const genre = String(event?.genre || '').trim();
+      if (genre) values.add(genre);
+    });
+    return Array.from(values).sort((a, b) => a.localeCompare(b));
+  }, [events]);
+
+  const filteredRows = useMemo(() => {
+    if (selectedGenre === 'all') return tableRows;
+    return tableRows.filter((row) => row.genre === selectedGenre);
+  }, [selectedGenre, tableRows]);
+
   if (loading) return <LoadingSpinner />;
 
   return (
@@ -138,11 +153,33 @@ export default function DakotaConcertCalendar() {
     >
       {error && <ErrorAlert error={error} onRetry={fetchEvents} />}
       <DashboardSection title="Upcoming Concerts">
-        <div className="mb-4 flex justify-end">
+        <div className="no-print mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <label htmlFor="dakota-genre-filter" className="sr-only">Genre filter</label>
+            <select
+              id="dakota-genre-filter"
+              aria-label="Filter by genre"
+              value={selectedGenre}
+              onChange={(event) => setSelectedGenre(event.target.value)}
+              className="rounded-md border px-3 py-2 text-sm"
+              style={{
+                borderColor: 'var(--border-soft)',
+                color: 'var(--text-primary)',
+                backgroundColor: '#fff',
+              }}
+            >
+              <option value="all">All Genres</option>
+              {genreOptions.map((genre) => (
+                <option key={genre} value={genre}>
+                  {genre}
+                </option>
+              ))}
+            </select>
+          </div>
           <button
             type="button"
             onClick={handlePrint}
-            className="no-print dashboard-link focus-ring inline-flex items-center justify-center rounded-full border px-4 py-2 text-sm"
+            className="dashboard-link focus-ring inline-flex items-center justify-center rounded-full border px-4 py-2 text-sm"
             style={{ borderColor: 'var(--border-soft)' }}
           >
             <svg
@@ -160,7 +197,7 @@ export default function DakotaConcertCalendar() {
         <Card className="p-0 overflow-x-auto">
           <DataTable
             columns={tableColumns}
-            rows={tableRows}
+            rows={filteredRows}
             rowKey="id"
             emptyMessage="No upcoming concerts found."
             striped={false}
