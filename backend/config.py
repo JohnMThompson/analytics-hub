@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     enable_swim_dashboard: bool = True
     enable_rpi_dashboard: bool = True
     enable_halloween_dashboard: bool = True
+    enable_dakota_dashboard: bool = True
     
     # Mortgage Database (required at runtime, but optional for testing)
     db_mortgage_host: Optional[str] = None
@@ -51,6 +52,13 @@ class Settings(BaseSettings):
     db_halloween_password: Optional[str] = None
     db_halloween_name: Optional[str] = None
     db_halloween_port: int = 3306
+
+    # Dakota Database
+    db_dakota_host: Optional[str] = None
+    db_dakota_user: Optional[str] = None
+    db_dakota_password: Optional[str] = None
+    db_dakota_name: Optional[str] = None
+    db_dakota_port: int = 3306
     
     model_config = SettingsConfigDict(
         env_file=(".env", "../.env"),
@@ -129,6 +137,12 @@ def _validate_required_settings(database: str) -> None:
             "DB_HALLOWEEN_USER": settings.db_halloween_user,
             "DB_HALLOWEEN_NAME": settings.db_halloween_name,
         }
+    elif database == "dakota":
+        required = {
+            "DB_DAKOTA_HOST": settings.db_dakota_host,
+            "DB_DAKOTA_USER": settings.db_dakota_user,
+            "DB_DAKOTA_NAME": settings.db_dakota_name,
+        }
     else:
         raise ValueError(f"Unknown database: {database}")
 
@@ -190,6 +204,14 @@ def get_db_connection_string(database: str) -> str:
             f"{settings.db_halloween_password}@"
             f"{settings.db_halloween_host}:{settings.db_halloween_port}/"
             f"{settings.db_halloween_name}"
+        )
+    elif database == "dakota":
+        _validate_required_settings("dakota")
+        return (
+            f"mysql+pymysql://{settings.db_dakota_user}:"
+            f"{settings.db_dakota_password}@"
+            f"{settings.db_dakota_host}:{settings.db_dakota_port}/"
+            f"{settings.db_dakota_name}"
         )
     else:
         raise ValueError(f"Unknown database: {database}")
@@ -266,6 +288,15 @@ def get_db_config(database: str) -> dict:
             "password": settings.db_halloween_password,
             "database": settings.db_halloween_name,
             "port": settings.db_halloween_port,
+        }
+    elif database == "dakota":
+        _validate_required_settings("dakota")
+        return {
+            "host": settings.db_dakota_host,
+            "user": settings.db_dakota_user,
+            "password": settings.db_dakota_password,
+            "database": settings.db_dakota_name,
+            "port": settings.db_dakota_port,
         }
     else:
         raise ValueError(f"Unknown database: {database}")

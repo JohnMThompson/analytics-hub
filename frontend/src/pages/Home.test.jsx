@@ -7,6 +7,7 @@ describe('sortDashboardsByPreferredOrder', () => {
     const input = [
       { id: 'home_office_temperature', title: 'Home Office Temperature' },
       { id: 'new_dashboard', title: 'New Dashboard' },
+      { id: 'dakota_concert_calendar', title: 'Dakota Concert Calendar' },
       { id: 'halloween_tracking', title: 'Halloween Tracking' },
       { id: 'swim_tracking', title: 'Swim Tracking' },
       { id: 'mortgage_rates', title: 'Mortgage Rates' },
@@ -16,6 +17,7 @@ describe('sortDashboardsByPreferredOrder', () => {
     expect(sorted.map((item) => item.id)).toEqual([
       'mortgage_rates',
       'swim_tracking',
+      'dakota_concert_calendar',
       'halloween_tracking',
       'home_office_temperature',
       'new_dashboard',
@@ -27,6 +29,7 @@ describe('getDashboardAccentColor', () => {
   test('prefers known landing accent map and falls back to API accent for unknown dashboards', () => {
     expect(getDashboardAccentColor({ id: 'halloween_tracking', colors: {} })).toBe('#ea580c');
     expect(getDashboardAccentColor({ id: 'swim_tracking', colors: { accent: '#123456' } })).toBe('#2563eb');
+    expect(getDashboardAccentColor({ id: 'dakota_concert_calendar', colors: { accent: '#123456' } })).toBe('#00AEEF');
     expect(getDashboardAccentColor({ id: 'custom', colors: { accent: '#123456' } })).toBe('#123456');
   });
 });

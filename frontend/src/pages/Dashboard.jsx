@@ -9,15 +9,17 @@ import MortgageRates from './MortgageRates';
 import SwimTracking from './SwimTracking';
 import HomeOfficeTemperature from './HomeOfficeTemperature';
 import HalloweenTracking from './HalloweenTracking';
+import DakotaConcertCalendar from './DakotaConcertCalendar';
 import DashboardLayout from '../layouts/DashboardLayout';
 import { Card } from '../components/shared';
 
 // Map dashboard IDs to their components
-const dashboardComponents = {
+export const dashboardComponents = {
   mortgage_rates: MortgageRates,
   swim_tracking: SwimTracking,
   home_office_temperature: HomeOfficeTemperature,
   halloween_tracking: HalloweenTracking,
+  dakota_concert_calendar: DakotaConcertCalendar,
 };
 
 export default function Dashboard() {

@@ -111,6 +111,14 @@ def test_database_type_detection():
     db_type = registry._get_dashboard_database(HalloweenTrackingDashboard)
     assert db_type == "halloween"
 
+    # Test dakota detection
+    class DakotaConcertCalendarDashboard(BaseDashboard):
+        metadata = DashboardMetadata(id="test", title="Test", description="Test")
+        async def get_data(self): pass
+
+    db_type = registry._get_dashboard_database(DakotaConcertCalendarDashboard)
+    assert db_type == "dakota"
+
 
 def test_register_routes_uses_dashboard_custom_routes():
     """Test that registry registers custom routes from dashboard definition."""

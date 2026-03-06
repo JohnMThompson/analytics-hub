@@ -12,6 +12,7 @@ import DashboardThumbnail from '../components/DashboardThumbnail';
 const DASHBOARD_DISPLAY_ORDER = [
   'mortgage_rates',
   'swim_tracking',
+  'dakota_concert_calendar',
   'halloween_tracking',
   'home_office_temperature',
 ];
@@ -19,6 +20,7 @@ const DASHBOARD_DISPLAY_ORDER = [
 const DASHBOARD_ACCENT_COLORS = {
   mortgage_rates: '#16a34a',
   swim_tracking: '#2563eb',
+  dakota_concert_calendar: '#00AEEF',
   halloween_tracking: '#ea580c',
   home_office_temperature: '#7c3aed',
 };
