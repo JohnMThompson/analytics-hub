@@ -23,4 +23,15 @@ describe('DataTable', () => {
 
     expect(html).toContain('No workouts yet.');
   });
+
+  test('applies header className when provided', () => {
+    const columns = [
+      { key: 'description', header: 'Description', headerClassName: 'print-hide-column' },
+    ];
+    const rows = [{ id: 1, description: 'Details' }];
+
+    const html = renderToStaticMarkup(<DataTable columns={columns} rows={rows} rowKey="id" />);
+
+    expect(html).toContain('print-hide-column');
+  });
 });

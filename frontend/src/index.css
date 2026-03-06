@@ -312,6 +312,10 @@
       display: none !important;
     }
 
+    .print-hide-column {
+      display: none !important;
+    }
+
     .screen-only {
       display: none !important;
     }

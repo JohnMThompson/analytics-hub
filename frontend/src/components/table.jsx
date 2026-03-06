@@ -25,7 +25,7 @@ export function DataTable({
           {columns.map((column) => (
             <th
               key={column.key}
-              className={`py-3 px-4 font-semibold tracking-tight ${column.align === 'right' ? 'text-right' : 'text-left'}`}
+              className={`py-3 px-4 font-semibold tracking-tight ${column.align === 'right' ? 'text-right' : 'text-left'} ${column.headerClassName || ''}`}
               style={{ color: 'var(--text-primary)' }}
             >
               {column.header}
