@@ -8,6 +8,7 @@ import { Link } from 'react-router-dom';
 import apiClient from '../services/api';
 import { LoadingSpinner, ErrorAlert } from '../components/shared';
 import DashboardThumbnail from '../components/DashboardThumbnail';
+import { setDocumentTitle } from '../utils/pageTitle';
 
 const DASHBOARD_DISPLAY_ORDER = [
   'mortgage_rates',
@@ -24,6 +25,8 @@ const DASHBOARD_ACCENT_COLORS = {
   halloween_tracking: '#ea580c',
   home_office_temperature: '#7c3aed',
 };
+
+export const HOME_PAGE_TITLE = 'Analytics and Reporting Hub';
 
 export function sortDashboardsByPreferredOrder(dashboards) {
   const orderMap = new Map(DASHBOARD_DISPLAY_ORDER.map((id, index) => [id, index]));
@@ -70,7 +73,7 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    document.title = 'Analytics and Reporting Hub | AI Analytics';
+    setDocumentTitle(HOME_PAGE_TITLE);
   }, []);
 
   const priorityDashboardIds = useMemo(() => dashboards.slice(0, 3).map((dashboard) => dashboard.id), [dashboards]);

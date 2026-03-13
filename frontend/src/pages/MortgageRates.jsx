@@ -38,10 +38,6 @@ export default function MortgageRates() {
     fetchMortgageData();
   }, [selectedDays]);
 
-  useEffect(() => {
-    document.title = 'Mortgage Rates | AI Analytics';
-  }, []);
-
   const fetchMortgageData = async () => {
     try {
       setLoading(true);
