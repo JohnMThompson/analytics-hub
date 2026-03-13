@@ -1,13 +1,14 @@
 /**
  * Dakota Concert Calendar dashboard.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import apiClient from '../services/api';
 import DashboardLayout from '../layouts/DashboardLayout';
 import { Card, DashboardSection, ErrorAlert, LoadingSpinner } from '../components/shared';
 import DataTable from '../components/table';
 
 export const DESCRIPTION_PREVIEW_CHARS = 280;
+export const MOBILE_DESCRIPTION_PREVIEW_WORDS = 20;
 
 export function truncateDescription(value, maxChars = DESCRIPTION_PREVIEW_CHARS) {
   const normalized = String(value || '').trim();
@@ -17,6 +18,23 @@ export function truncateDescription(value, maxChars = DESCRIPTION_PREVIEW_CHARS)
 
   return {
     text: `${normalized.slice(0, maxChars).trimEnd()}...`,
+    isTruncated: true,
+  };
+}
+
+export function truncateDescriptionByWords(value, maxWords = MOBILE_DESCRIPTION_PREVIEW_WORDS) {
+  const normalized = String(value || '').trim();
+  if (!normalized) {
+    return { text: normalized, isTruncated: false };
+  }
+
+  const words = normalized.split(/\s+/).filter(Boolean);
+  if (words.length <= maxWords) {
+    return { text: normalized, isTruncated: false };
+  }
+
+  return {
+    text: `${words.slice(0, maxWords).join(' ')}...`,
     isTruncated: true,
   };
 }
@@ -34,12 +52,79 @@ export function formatDateLong(value) {
   });
 }
 
+export function buildDakotaTableColumns(expandedDescriptions, toggleDescription, isMobile = false) {
+  const compactHeaderClass = 'px-2 py-2 text-xs sm:px-4 sm:py-3 sm:text-sm';
+  const compactCellClass = 'px-2 py-2 text-xs sm:px-4 sm:py-3 sm:text-sm';
+
+  return [
+    {
+      key: 'event_date',
+      header: 'Date',
+      tone: 'primary',
+      headerClassName: compactHeaderClass,
+      className: `whitespace-nowrap ${compactCellClass}`,
+    },
+    {
+      key: 'event_time',
+      header: 'Time',
+      tone: 'secondary',
+      headerClassName: compactHeaderClass,
+      className: `whitespace-nowrap ${compactCellClass}`,
+    },
+    {
+      key: 'performer_name',
+      header: 'Performer',
+      tone: 'primary',
+      headerClassName: compactHeaderClass,
+      className: `whitespace-normal break-words ${compactCellClass}`,
+    },
+    {
+      key: 'genre',
+      header: 'Genre',
+      tone: 'secondary',
+      headerClassName: compactHeaderClass,
+      className: `whitespace-normal break-words ${compactCellClass}`,
+    },
+    {
+      key: 'description_short',
+      header: 'Description',
+      tone: 'secondary',
+      headerClassName: `${compactHeaderClass} hidden sm:table-cell print-hide-column`,
+      className: `hidden sm:table-cell whitespace-normal break-words print-hide-column ${compactCellClass}`,
+      render: (row) => {
+        const description = row?.description_short || '—';
+        const { text: preview, isTruncated } = isMobile
+          ? truncateDescriptionByWords(description)
+          : truncateDescription(description);
+        const isExpanded = expandedDescriptions.has(row.id);
+
+        return (
+          <div className="whitespace-normal break-words">
+            <span>{isExpanded ? description : preview}</span>
+            {isTruncated && (
+              <button
+                type="button"
+                className="no-print ml-2 text-xs font-semibold underline"
+                style={{ color: 'var(--accent-600)' }}
+                onClick={() => toggleDescription(row.id)}
+              >
+                {isExpanded ? 'Show less' : 'Show more'}
+              </button>
+            )}
+          </div>
+        );
+      },
+    },
+  ];
+}
+
 export default function DakotaConcertCalendar() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expandedDescriptions, setExpandedDescriptions] = useState(() => new Set());
   const [selectedGenre, setSelectedGenre] = useState('all');
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
 
   useEffect(() => {
     document.title = 'Dakota Concert Calendar | AI Analytics';
@@ -62,7 +147,21 @@ export default function DakotaConcertCalendar() {
     fetchEvents();
   }, []);
 
-  const toggleDescription = (rowId) => {
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 639px)');
+    const updateViewport = (event) => {
+      setIsMobileViewport(event.matches);
+    };
+
+    setIsMobileViewport(mediaQuery.matches);
+    mediaQuery.addEventListener('change', updateViewport);
+
+    return () => {
+      mediaQuery.removeEventListener('change', updateViewport);
+    };
+  }, []);
+
+  const toggleDescription = useCallback((rowId) => {
     setExpandedDescriptions((prev) => {
       const next = new Set(prev);
       if (next.has(rowId)) {
@@ -72,48 +171,15 @@ export default function DakotaConcertCalendar() {
       }
       return next;
     });
-  };
+  }, []);
 
   const handlePrint = () => {
     window.print();
   };
 
   const tableColumns = useMemo(
-    () => [
-      { key: 'event_date', header: 'Date', tone: 'primary', className: 'whitespace-nowrap min-w-[150px]' },
-      { key: 'event_time', header: 'Time', tone: 'secondary', className: 'whitespace-nowrap min-w-[110px]' },
-      { key: 'performer_name', header: 'Performer', tone: 'primary' },
-      { key: 'genre', header: 'Genre', tone: 'secondary' },
-      {
-        key: 'description_short',
-        header: 'Description',
-        tone: 'secondary',
-        headerClassName: 'print-hide-column',
-        className: 'whitespace-normal break-words print-hide-column',
-        render: (row) => {
-          const description = row?.description_short || '—';
-          const { text: preview, isTruncated } = truncateDescription(description);
-          const isExpanded = expandedDescriptions.has(row.id);
-
-          return (
-            <div className="whitespace-normal break-words">
-              <span>{isExpanded ? description : preview}</span>
-              {isTruncated && (
-                <button
-                  type="button"
-                  className="no-print ml-2 text-xs font-semibold underline"
-                  style={{ color: 'var(--accent-600)' }}
-                  onClick={() => toggleDescription(row.id)}
-                >
-                  {isExpanded ? 'Show less' : 'Show more'}
-                </button>
-              )}
-            </div>
-          );
-        },
-      },
-    ],
-    [expandedDescriptions],
+    () => buildDakotaTableColumns(expandedDescriptions, toggleDescription, isMobileViewport),
+    [expandedDescriptions, toggleDescription, isMobileViewport],
   );
 
   const tableRows = useMemo(
@@ -153,7 +219,7 @@ export default function DakotaConcertCalendar() {
     >
       {error && <ErrorAlert error={error} onRetry={fetchEvents} />}
       <DashboardSection title="Upcoming Concerts">
-        <div className="no-print mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="no-print mb-4 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
             <label htmlFor="dakota-genre-filter" className="sr-only">Genre filter</label>
             <select
@@ -161,7 +227,7 @@ export default function DakotaConcertCalendar() {
               aria-label="Filter by genre"
               value={selectedGenre}
               onChange={(event) => setSelectedGenre(event.target.value)}
-              className="rounded-md border px-3 py-2 text-sm"
+              className="w-full rounded-md border px-3 py-2 text-sm sm:w-auto"
               style={{
                 borderColor: 'var(--border-soft)',
                 color: 'var(--text-primary)',
@@ -179,7 +245,7 @@ export default function DakotaConcertCalendar() {
           <button
             type="button"
             onClick={handlePrint}
-            className="dashboard-link focus-ring inline-flex items-center justify-center rounded-full border px-4 py-2 text-sm"
+            className="dashboard-link focus-ring inline-flex w-full items-center justify-center rounded-full border px-4 py-2 text-sm sm:w-auto"
             style={{ borderColor: 'var(--border-soft)' }}
           >
             <svg
@@ -194,7 +260,7 @@ export default function DakotaConcertCalendar() {
             Print
           </button>
         </div>
-        <Card className="p-0 overflow-x-auto">
+        <Card className="p-0 [&_table]:table-fixed">
           <DataTable
             columns={tableColumns}
             rows={filteredRows}
