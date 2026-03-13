@@ -126,10 +126,6 @@ export default function DakotaConcertCalendar() {
   const [selectedGenre, setSelectedGenre] = useState('all');
   const [isMobileViewport, setIsMobileViewport] = useState(false);
 
-  useEffect(() => {
-    document.title = 'Dakota Concert Calendar | AI Analytics';
-  }, []);
-
   const fetchEvents = async () => {
     try {
       setLoading(true);

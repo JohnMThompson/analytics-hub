@@ -22,10 +22,6 @@ export default function HomeOfficeTemperature() {
     fetchTemperatureData();
   }, []);
 
-  useEffect(() => {
-    document.title = 'Home Office Temperature | AI Analytics';
-  }, []);
-
   const fetchTemperatureData = async () => {
     try {
       setLoading(true);

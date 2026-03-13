@@ -28,10 +28,6 @@ export default function HalloweenTracking() {
     fetchData();
   }, []);
 
-  useEffect(() => {
-    document.title = 'Halloween Tracking | AI Analytics';
-  }, []);
-
   const fetchData = async () => {
     try {
       setLoading(true);

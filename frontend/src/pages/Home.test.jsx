@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { DashboardCardContent, getDashboardAccentColor, sortDashboardsByPreferredOrder } from './Home';
+import { DashboardCardContent, getDashboardAccentColor, HOME_PAGE_TITLE, sortDashboardsByPreferredOrder } from './Home';
+import { setDocumentTitle } from '../utils/pageTitle';
 
 describe('sortDashboardsByPreferredOrder', () => {
   test('orders known dashboards and appends unknown dashboards at the end', () => {
@@ -75,5 +76,20 @@ describe('DashboardCardContent', () => {
     expect(html).toContain('aria-hidden="true"');
     expect(html).toContain('tabindex="-1"');
     expect(html).toContain('pointer-events:none');
+  });
+});
+
+describe('HOME_PAGE_TITLE', () => {
+  test('matches the browser tab title without the app suffix', () => {
+    expect(HOME_PAGE_TITLE).toBe('Analytics and Reporting Hub');
+  });
+
+  test('can be applied through the shared title helper', () => {
+    global.document = { title: '' };
+
+    setDocumentTitle(HOME_PAGE_TITLE);
+
+    expect(global.document.title).toBe('Analytics and Reporting Hub');
+    delete global.document;
   });
 });

@@ -12,6 +12,7 @@ import HalloweenTracking from './HalloweenTracking';
 import DakotaConcertCalendar from './DakotaConcertCalendar';
 import DashboardLayout from '../layouts/DashboardLayout';
 import { Card } from '../components/shared';
+import { setDocumentTitle } from '../utils/pageTitle';
 
 // Map dashboard IDs to their components
 export const dashboardComponents = {
@@ -22,16 +23,28 @@ export const dashboardComponents = {
   dakota_concert_calendar: DakotaConcertCalendar,
 };
 
+export const dashboardTitles = {
+  mortgage_rates: 'Mortgage Rates',
+  swim_tracking: 'Swim Tracking',
+  home_office_temperature: 'Home Office Temperature',
+  halloween_tracking: 'Halloween Tracking',
+  dakota_concert_calendar: 'Dakota Concert Calendar',
+};
+
+export const DASHBOARD_NOT_FOUND_TITLE = 'Dashboard Not Found';
+
+export function getDashboardTitle(dashboardId) {
+  return dashboardTitles[dashboardId] || DASHBOARD_NOT_FOUND_TITLE;
+}
+
 export default function Dashboard() {
   const { dashboardId } = useParams();
   
   const DashboardComponent = dashboardComponents[dashboardId];
 
   useEffect(() => {
-    if (!DashboardComponent) {
-      document.title = 'Dashboard Not Found | AI Analytics';
-    }
-  }, [DashboardComponent]);
+    setDocumentTitle(getDashboardTitle(dashboardId));
+  }, [dashboardId]);
 
   if (!DashboardComponent) {
     return (
