@@ -1,6 +1,6 @@
 # DigitalOcean Deployment Runbook
 
-This guide deploys `ai-analytics` to a DigitalOcean droplet with:
+This guide deploys `analytics-hub` to a DigitalOcean droplet with:
 - Docker Compose runtime
 - Caddy reverse proxy (automatic HTTPS)
 - Public access through a subdomain
@@ -66,7 +66,7 @@ Do not expose `3000` or `8000` publicly.
 ```bash
 sudo mkdir -p /opt/ai-analytics
 sudo chown "$USER":"$USER" /opt/ai-analytics
-git clone https://github.com/JohnMThompson/ai-analytics.git /opt/ai-analytics
+git clone https://github.com/JohnMThompson/analytics-hub.git /opt/ai-analytics
 cd /opt/ai-analytics
 cp .env.example .env
 ```
