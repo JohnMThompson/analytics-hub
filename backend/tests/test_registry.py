@@ -128,6 +128,26 @@ def test_register_routes_uses_dashboard_custom_routes():
     paths = {route.path for route in registry.router.routes}
     assert "/api/dashboards/test_dashboard/data" in paths
     assert "/api/dashboards/test_dashboard/extra" in paths
+    route_tags = {route.path: route.tags for route in registry.router.routes}
+    assert route_tags["/api/dashboards/test_dashboard/data"] == ["Test Dashboard"]
+    assert route_tags["/api/dashboards/test_dashboard/extra"] == ["Test Dashboard"]
+
+
+def test_get_openapi_tags_returns_general_and_dashboard_metadata():
+    """Test OpenAPI tag metadata is returned in display order."""
+    registry = DashboardRegistry()
+    registry.dashboards["test_dashboard"] = MockDashboard({})
+
+    tags = registry.get_openapi_tags()
+
+    assert tags[0] == {
+        "name": "General",
+        "description": "Platform health and discovery endpoints",
+    }
+    assert tags[1] == {
+        "name": "Test Dashboard",
+        "description": "Test",
+    }
 
 
 def test_disabled_dashboard_is_skipped(monkeypatch):
