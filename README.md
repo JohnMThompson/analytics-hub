@@ -1,4 +1,4 @@
-# AI Analytics
+# Analytics Hub
 
 A self-hosted, modular analytics dashboard platform designed to replace Metabase. Build custom dashboards with a plugin-like architecture—easily add new dashboards for different data sources.
 
