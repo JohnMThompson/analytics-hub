@@ -52,7 +52,7 @@ async def test_openapi_groups_general_and_dashboard_tags(client):
     assert dashboard_operation_tags
     assert all(tags != ("dashboards",) for tags in dashboard_operation_tags)
     assert all(tags != ("default",) for tags in dashboard_operation_tags)
-    assert ("Halloween Tracking",) in dashboard_operation_tags
+    assert all(len(tags) == 1 for tags in dashboard_operation_tags)
     assert ("Mortgage Rates",) in dashboard_operation_tags
 
 
