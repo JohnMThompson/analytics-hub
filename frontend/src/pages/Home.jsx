@@ -129,7 +129,7 @@ export default function Home() {
             <p className="dashboard-subtitle">Choose a dashboard to view</p>
           </div>
           <a
-            href="https://github.com/JohnMThompson/ai-analytics"
+            href="https://github.com/JohnMThompson/analytics-hub"
             target="_blank"
             rel="noreferrer"
             aria-label="Open project GitHub repository"

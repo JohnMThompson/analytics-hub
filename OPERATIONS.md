@@ -1,6 +1,6 @@
 # Operations Runbook
 
-This document covers routine checks and incident triage for `ai-analytics`.
+This document covers routine checks and incident triage for `analytics-hub`.
 
 ## Quick Status Checks
 

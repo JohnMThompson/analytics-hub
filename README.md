@@ -23,7 +23,7 @@ A self-hosted, modular analytics dashboard platform designed to replace Metabase
 
 1. Clone the repository and navigate to it:
 ```bash
-cd ai-analytics
+cd analytics-hub
 ```
 
 2. Copy the environment example and configure your database credentials:
@@ -47,7 +47,7 @@ The application will be available at:
 ### Project Structure
 
 ```
-ai-analytics/
+analytics-hub/
 ├── backend/
 │   ├── app.py                      # FastAPI application
 │   ├── config.py                   # Configuration & database setup
