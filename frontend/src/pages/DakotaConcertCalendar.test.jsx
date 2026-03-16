@@ -1,8 +1,11 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
+import { renderToStaticMarkup } from 'react-dom/server';
 import {
+  DakotaMobileEventCard,
   buildDakotaTableColumns,
   DESCRIPTION_PREVIEW_CHARS,
   formatDateLong,
+  getDakotaDescriptionPreview,
   truncateDescription,
   truncateDescriptionByWords,
   MOBILE_DESCRIPTION_PREVIEW_WORDS,
@@ -57,6 +60,25 @@ describe('truncateDescriptionByWords', () => {
   });
 });
 
+describe('getDakotaDescriptionPreview', () => {
+  test('uses the full description when already expanded', () => {
+    const text = Array.from({ length: MOBILE_DESCRIPTION_PREVIEW_WORDS + 2 }, (_, i) => `word${i + 1}`).join(' ');
+    const result = getDakotaDescriptionPreview(text, true, true);
+
+    expect(result.text).toBe(text);
+    expect(result.isTruncated).toBe(true);
+  });
+
+  test('uses word truncation for the mobile preview', () => {
+    const text = Array.from({ length: MOBILE_DESCRIPTION_PREVIEW_WORDS + 3 }, (_, i) => `word${i + 1}`).join(' ');
+    const result = getDakotaDescriptionPreview(text, false, true);
+
+    expect(result.isTruncated).toBe(true);
+    expect(result.text.endsWith('...')).toBe(true);
+    expect(result.text.split(/\s+/).length).toBe(MOBILE_DESCRIPTION_PREVIEW_WORDS);
+  });
+});
+
 describe('buildDakotaTableColumns', () => {
   test('uses mobile-friendly classes without fixed minimum widths', () => {
     const columns = buildDakotaTableColumns(new Set(), () => {});
@@ -78,5 +100,54 @@ describe('buildDakotaTableColumns', () => {
     expect(descriptionColumn.className).toContain('print-hide-column');
     expect(descriptionColumn.className).toContain('hidden');
     expect(descriptionColumn.className).toContain('sm:table-cell');
+  });
+});
+
+describe('DakotaMobileEventCard', () => {
+  test('renders performer metadata and the mobile show more control', () => {
+    const row = {
+      id: 7,
+      performer_name: 'Makaya McCraven',
+      genre: 'Jazz',
+      event_time: '7:00 PM',
+      event_date: 'March 18, 2026',
+      description_short: Array.from(
+        { length: MOBILE_DESCRIPTION_PREVIEW_WORDS + 4 },
+        (_, i) => `word${i + 1}`,
+      ).join(' '),
+    };
+
+    const html = renderToStaticMarkup(
+      <DakotaMobileEventCard row={row} expandedDescriptions={new Set()} toggleDescription={vi.fn()} />,
+    );
+
+    expect(html).toContain('Makaya McCraven');
+    expect(html).toContain('Jazz');
+    expect(html).toContain('7:00 PM');
+    expect(html).toContain('March 18, 2026');
+    expect(html).toContain('Show more');
+  });
+
+  test('renders the full description when the card is expanded', () => {
+    const longDescription = Array.from(
+      { length: MOBILE_DESCRIPTION_PREVIEW_WORDS + 5 },
+      (_, i) => `word${i + 1}`,
+    ).join(' ');
+
+    const row = {
+      id: 8,
+      performer_name: 'Arooj Aftab',
+      genre: 'Global',
+      event_time: '9:30 PM',
+      event_date: 'March 19, 2026',
+      description_short: longDescription,
+    };
+
+    const html = renderToStaticMarkup(
+      <DakotaMobileEventCard row={row} expandedDescriptions={new Set([8])} toggleDescription={vi.fn()} />,
+    );
+
+    expect(html).toContain(row.description_short);
+    expect(html).toContain('Show less');
   });
 });

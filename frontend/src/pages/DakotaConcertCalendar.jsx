@@ -52,7 +52,22 @@ export function formatDateLong(value) {
   });
 }
 
-export function buildDakotaTableColumns(expandedDescriptions, toggleDescription, isMobile = false) {
+export function getDakotaDescriptionPreview(description, isExpanded, isMobile = false) {
+  const truncated = isMobile
+    ? truncateDescriptionByWords(description)
+    : truncateDescription(description);
+
+  if (isExpanded) {
+    return {
+      text: description,
+      isTruncated: truncated.isTruncated,
+    };
+  }
+
+  return truncated;
+}
+
+export function buildDakotaTableColumns(expandedDescriptions, toggleDescription) {
   const compactHeaderClass = 'px-2 py-2 text-xs sm:px-4 sm:py-3 sm:text-sm';
   const compactCellClass = 'px-2 py-2 text-xs sm:px-4 sm:py-3 sm:text-sm';
 
@@ -93,14 +108,12 @@ export function buildDakotaTableColumns(expandedDescriptions, toggleDescription,
       className: `hidden sm:table-cell whitespace-normal break-words print-hide-column ${compactCellClass}`,
       render: (row) => {
         const description = row?.description_short || '—';
-        const { text: preview, isTruncated } = isMobile
-          ? truncateDescriptionByWords(description)
-          : truncateDescription(description);
         const isExpanded = expandedDescriptions.has(row.id);
+        const { text: preview, isTruncated } = getDakotaDescriptionPreview(description, isExpanded);
 
         return (
           <div className="whitespace-normal break-words">
-            <span>{isExpanded ? description : preview}</span>
+            <span>{preview}</span>
             {isTruncated && (
               <button
                 type="button"
@@ -118,13 +131,60 @@ export function buildDakotaTableColumns(expandedDescriptions, toggleDescription,
   ];
 }
 
+export function DakotaMobileEventCard({ row, expandedDescriptions, toggleDescription }) {
+  const description = row?.description_short || '—';
+  const isExpanded = expandedDescriptions.has(row.id);
+  const { text: preview, isTruncated } = getDakotaDescriptionPreview(description, isExpanded, true);
+
+  return (
+    <article
+      className="rounded-2xl border p-4 shadow-sm"
+      style={{
+        borderColor: 'var(--border-soft)',
+        backgroundColor: 'var(--bg-panel)',
+      }}
+    >
+      <div className="mb-3 flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+            {row?.performer_name || '—'}
+          </p>
+          <p className="mt-1 text-xs uppercase tracking-[0.16em]" style={{ color: 'var(--accent-600)' }}>
+            {row?.genre || '—'}
+          </p>
+        </div>
+        <div className="shrink-0 text-right">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--text-muted)' }}>
+            {row?.event_time || '—'}
+          </p>
+        </div>
+      </div>
+      <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
+        {row?.event_date || '—'}
+      </p>
+      <div className="mt-3 text-sm leading-6" style={{ color: 'var(--text-secondary)' }}>
+        <span>{preview}</span>
+        {isTruncated && (
+          <button
+            type="button"
+            className="ml-2 text-xs font-semibold underline"
+            style={{ color: 'var(--accent-600)' }}
+            onClick={() => toggleDescription(row.id)}
+          >
+            {isExpanded ? 'Show less' : 'Show more'}
+          </button>
+        )}
+      </div>
+    </article>
+  );
+}
+
 export default function DakotaConcertCalendar() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expandedDescriptions, setExpandedDescriptions] = useState(() => new Set());
   const [selectedGenre, setSelectedGenre] = useState('all');
-  const [isMobileViewport, setIsMobileViewport] = useState(false);
 
   const fetchEvents = async () => {
     try {
@@ -141,20 +201,6 @@ export default function DakotaConcertCalendar() {
 
   useEffect(() => {
     fetchEvents();
-  }, []);
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia('(max-width: 639px)');
-    const updateViewport = (event) => {
-      setIsMobileViewport(event.matches);
-    };
-
-    setIsMobileViewport(mediaQuery.matches);
-    mediaQuery.addEventListener('change', updateViewport);
-
-    return () => {
-      mediaQuery.removeEventListener('change', updateViewport);
-    };
   }, []);
 
   const toggleDescription = useCallback((rowId) => {
@@ -174,8 +220,8 @@ export default function DakotaConcertCalendar() {
   };
 
   const tableColumns = useMemo(
-    () => buildDakotaTableColumns(expandedDescriptions, toggleDescription, isMobileViewport),
-    [expandedDescriptions, toggleDescription, isMobileViewport],
+    () => buildDakotaTableColumns(expandedDescriptions, toggleDescription),
+    [expandedDescriptions, toggleDescription],
   );
 
   const tableRows = useMemo(
@@ -256,7 +302,23 @@ export default function DakotaConcertCalendar() {
             Print
           </button>
         </div>
-        <Card className="p-0 [&_table]:table-fixed">
+        <div className="grid gap-3 sm:hidden">
+          {filteredRows.length === 0 ? (
+            <Card className="py-8 text-center text-sm" style={{ color: 'var(--text-muted)' }}>
+              No upcoming concerts found.
+            </Card>
+          ) : (
+            filteredRows.map((row) => (
+              <DakotaMobileEventCard
+                key={row.id}
+                row={row}
+                expandedDescriptions={expandedDescriptions}
+                toggleDescription={toggleDescription}
+              />
+            ))
+          )}
+        </div>
+        <Card className="hidden p-0 sm:block [&_table]:table-fixed">
           <DataTable
             columns={tableColumns}
             rows={filteredRows}
