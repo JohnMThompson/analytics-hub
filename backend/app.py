@@ -31,6 +31,7 @@ except ImportError:
 configure_logging()
 
 logger = logging.getLogger(__name__)
+registry = get_registry()
 
 
 @asynccontextmanager
@@ -43,10 +44,11 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(
-    title="AI Analytics API",
-    description="Modular analytics dashboard platform",
+    title="Analytics & Reporting Hub API",
+    description="API definitions for small projects by John Thompson",
     version="0.1.0",
-    lifespan=lifespan
+    lifespan=lifespan,
+    openapi_tags=registry.get_openapi_tags(),
 )
 
 # Configure CORS for frontend communication
@@ -91,7 +93,7 @@ async def request_logging_middleware(request, call_next):
     return response
 
 
-@app.get("/api/health")
+@app.get("/api/health", tags=["General"])
 async def health_check():
     """Health check endpoint"""
     registry = get_registry()
@@ -102,7 +104,7 @@ async def health_check():
     }
 
 
-@app.get("/api/ready")
+@app.get("/api/ready", tags=["General"])
 async def readiness_check():
     """Readiness check endpoint including per-dashboard DB connectivity."""
     checks = {}
@@ -137,7 +139,7 @@ async def readiness_check():
     return JSONResponse(status_code=503, content=payload)
 
 
-@app.get("/api/dashboards")
+@app.get("/api/dashboards", tags=["General"])
 async def list_dashboards():
     """
     Discover and return metadata for all registered dashboards
@@ -149,8 +151,6 @@ async def list_dashboards():
     }
 
 
-# Initialize registry and include routers
-registry = get_registry()
 app.include_router(registry.router)
 
 

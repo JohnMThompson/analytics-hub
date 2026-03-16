@@ -27,7 +27,7 @@ class DashboardRegistry:
     
     def __init__(self):
         self.dashboards: Dict[str, BaseDashboard] = {}
-        self.router = APIRouter(prefix="/api/dashboards", tags=["dashboards"])
+        self.router = APIRouter(prefix="/api/dashboards")
     
     def discover_and_register(self) -> None:
         """
@@ -125,13 +125,15 @@ class DashboardRegistry:
         Register routes for a dashboard.
         """
         dashboard_id = dashboard.metadata.id
+        dashboard_tag = dashboard.metadata.title
         
         # Main data endpoint - use bound method directly
         self.router.add_api_route(
             f"/{dashboard_id}/data",
             dashboard.get_data,
             methods=["GET"],
-            name=f"{dashboard_id}_data"
+            name=f"{dashboard_id}_data",
+            tags=[dashboard_tag],
         )
 
         for route in dashboard.get_custom_routes():
@@ -143,8 +145,21 @@ class DashboardRegistry:
                 f"/{dashboard_id}/{path}",
                 endpoint,
                 methods=methods,
-                name=f"{dashboard_id}_{route_name}"
+                name=f"{dashboard_id}_{route_name}",
+                tags=[dashboard_tag],
             )
+
+    def get_openapi_tags(self) -> List[Dict[str, str]]:
+        """Return OpenAPI tag metadata in Swagger display order."""
+        tags = [{"name": "General", "description": "Platform health and discovery endpoints"}]
+        for dashboard in self.dashboards.values():
+            tags.append(
+                {
+                    "name": dashboard.metadata.title,
+                    "description": dashboard.metadata.description,
+                }
+            )
+        return tags
     
     def get_metadata(self) -> List[Dict]:
         """Get metadata for all registered dashboards"""

@@ -29,6 +29,34 @@ async def test_dashboards_endpoint_smoke(client):
 
 
 @pytest.mark.asyncio
+async def test_openapi_groups_general_and_dashboard_tags(client):
+    response = await client.get("/openapi.json")
+    assert response.status_code == 200
+
+    schema = response.json()
+    tag_names = [tag["name"] for tag in schema["tags"]]
+    assert tag_names[0] == "General"
+    assert "default" not in tag_names
+    assert "dashboards" not in tag_names
+
+    assert schema["paths"]["/api/health"]["get"]["tags"] == ["General"]
+    assert schema["paths"]["/api/ready"]["get"]["tags"] == ["General"]
+    assert schema["paths"]["/api/dashboards"]["get"]["tags"] == ["General"]
+
+    dashboard_operation_tags = {
+        tuple(operation["tags"])
+        for path, methods in schema["paths"].items()
+        if path.startswith("/api/dashboards/") and path != "/api/dashboards"
+        for operation in methods.values()
+    }
+    assert dashboard_operation_tags
+    assert all(tags != ("dashboards",) for tags in dashboard_operation_tags)
+    assert all(tags != ("default",) for tags in dashboard_operation_tags)
+    assert ("Halloween Tracking",) in dashboard_operation_tags
+    assert ("Mortgage Rates",) in dashboard_operation_tags
+
+
+@pytest.mark.asyncio
 async def test_request_id_header_is_echoed(client):
     response = await client.get("/api/health", headers={"x-request-id": "test-request-id"})
     assert response.status_code == 200
