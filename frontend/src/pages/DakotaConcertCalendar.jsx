@@ -78,6 +78,7 @@ export function buildDakotaTableColumns(expandedDescriptions, toggleDescription)
       tone: 'primary',
       headerClassName: compactHeaderClass,
       className: `whitespace-nowrap ${compactCellClass}`,
+      exportValue: (row) => row?.event_date || '—',
     },
     {
       key: 'event_time',
@@ -85,6 +86,7 @@ export function buildDakotaTableColumns(expandedDescriptions, toggleDescription)
       tone: 'secondary',
       headerClassName: compactHeaderClass,
       className: `whitespace-nowrap ${compactCellClass}`,
+      exportValue: (row) => row?.event_time || '—',
     },
     {
       key: 'performer_name',
@@ -92,6 +94,7 @@ export function buildDakotaTableColumns(expandedDescriptions, toggleDescription)
       tone: 'primary',
       headerClassName: compactHeaderClass,
       className: `whitespace-normal break-words ${compactCellClass}`,
+      exportValue: (row) => row?.performer_name || '—',
     },
     {
       key: 'genre',
@@ -99,6 +102,7 @@ export function buildDakotaTableColumns(expandedDescriptions, toggleDescription)
       tone: 'secondary',
       headerClassName: compactHeaderClass,
       className: `whitespace-normal break-words ${compactCellClass}`,
+      exportValue: (row) => row?.genre || '—',
     },
     {
       key: 'description_short',
@@ -106,6 +110,7 @@ export function buildDakotaTableColumns(expandedDescriptions, toggleDescription)
       tone: 'secondary',
       headerClassName: `${compactHeaderClass} hidden sm:table-cell print-hide-column`,
       className: `hidden sm:table-cell whitespace-normal break-words print-hide-column ${compactCellClass}`,
+      exportValue: (row) => row?.description_short || '—',
       render: (row) => {
         const description = row?.description_short || '—';
         const isExpanded = expandedDescriptions.has(row.id);
@@ -326,6 +331,10 @@ export default function DakotaConcertCalendar() {
             emptyMessage="No upcoming concerts found."
             striped={false}
             hover={true}
+            exportConfig={{
+              fileName: `dakota-concert-calendar-${selectedGenre === 'all' ? 'all-genres' : selectedGenre.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+              sheetName: 'Upcoming Concerts',
+            }}
           />
         </Card>
       </DashboardSection>

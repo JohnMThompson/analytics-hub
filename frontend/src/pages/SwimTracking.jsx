@@ -132,12 +132,14 @@ export default function SwimTracking() {
       key: 'start_date_time',
       header: 'Date & Time',
       render: (row) => formatDateTime(row.start_date_time),
+      exportValue: (row) => formatDateTime(row.start_date_time),
     },
     {
       key: 'duration',
       header: 'Duration',
       align: 'right',
       render: (row) => formatTime(row.duration),
+      exportValue: (row) => formatTime(row.duration),
     },
     {
       key: 'total_distance_yards',
@@ -324,6 +326,10 @@ export default function SwimTracking() {
                     rows={records}
                     rowKey="id"
                     emptyMessage="No workouts found."
+                    exportConfig={{
+                      fileName: `swim-tracking-recent-workouts-${selectedDays === 'all' ? 'all-time' : `${selectedDays}-days`}`,
+                      sheetName: 'Recent Workouts',
+                    }}
                   />
                 </DataTablePanel>
               </DashboardSection>
