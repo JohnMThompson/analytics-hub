@@ -26,44 +26,77 @@ const DATE_RANGE_OPTIONS = [
   { value: 730, label: 'Last 24 months' },
 ];
 
+export function formatLastUpdatedDate(timestamp) {
+  if (!timestamp) return '';
+
+  const parsedDate = new Date(timestamp);
+  if (Number.isNaN(parsedDate.getTime())) return '';
+
+  return parsedDate.toLocaleDateString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
 export default function MortgageRates() {
   const [selectedDays, setSelectedDays] = useState('365');
   const [currentRate, setCurrentRate] = useState(null);
   const [historicalData, setHistoricalData] = useState([]);
   const [weeklyData, setWeeklyData] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [currentLoading, setCurrentLoading] = useState(true);
+  const [historicalLoading, setHistoricalLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetchMortgageData();
+    fetchCurrentRate();
+  }, []);
+
+  useEffect(() => {
+    fetchHistoricalData();
   }, [selectedDays]);
 
-  const fetchMortgageData = async () => {
+  const fetchCurrentRate = async () => {
     try {
-      setLoading(true);
+      setCurrentLoading(true);
+      setError(null);
+
+      const current = await apiClient.getDashboardEndpoint('mortgage_rates', 'current_rate');
+      setCurrentRate(current);
+    } catch (err) {
+      setError(err);
+    } finally {
+      setCurrentLoading(false);
+    }
+  };
+
+  const fetchHistoricalData = async () => {
+    try {
+      setHistoricalLoading(true);
       setError(null);
 
       const isAllTime = selectedDays === 'all';
       const rangeParams = isAllTime ? { all_time: true } : { days: Number(selectedDays) };
 
-      // Fetch all data in parallel
-      const [current, historical, weekly] = await Promise.all([
-        apiClient.getDashboardEndpoint('mortgage_rates', 'current_rate'),
+      const [historical, weekly] = await Promise.all([
         apiClient.getDashboardEndpoint('mortgage_rates', 'historical_rates', rangeParams),
         apiClient.getDashboardEndpoint('mortgage_rates', 'weekly_rates', rangeParams),
       ]);
 
-      setCurrentRate(current);
       setHistoricalData(Array.isArray(historical) ? historical : []);
       setWeeklyData(Array.isArray(weekly) ? weekly : []);
     } catch (err) {
       setError(err);
     } finally {
-      setLoading(false);
+      setHistoricalLoading(false);
     }
   };
 
-  if (loading) return <LoadingSpinner />;
+  const isInitialLoading = currentLoading || historicalLoading;
+
+  if (isInitialLoading && !currentRate && historicalData.length === 0 && weeklyData.length === 0) {
+    return <LoadingSpinner />;
+  }
 
   const getTrendDirection = (change) => {
     if (change > 0) return 'up';
@@ -124,42 +157,48 @@ export default function MortgageRates() {
   const trend7Arm = getPreviousAndDelta(current7Arm, 'effective_rate_7arm');
   const thirtyDayComparison = getRateDeltaFromDaysAgo('effective_rate_30yr', 30);
   const timeframeLabel = DATE_RANGE_OPTIONS.find((option) => String(option.value) === String(selectedDays))?.label || `Last ${selectedDays} days`;
+  const lastUpdatedDate = formatLastUpdatedDate(currentRate?.timestamp);
+  const currentRatesSubtitle = lastUpdatedDate ? `Last updated: ${lastUpdatedDate}` : '';
+  const historicalTrendControls = (
+    <div className="flex flex-wrap items-center gap-3">
+      <label htmlFor="mortgage-date-range" className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>
+        Date Range
+      </label>
+      <select
+        id="mortgage-date-range"
+        className="focus-ring rounded-md border px-3 py-2 text-sm"
+        style={{ borderColor: 'var(--border-soft)', color: 'var(--text-primary)', backgroundColor: '#fff' }}
+        value={selectedDays}
+        onChange={(event) => setSelectedDays(event.target.value)}
+      >
+        {DATE_RANGE_OPTIONS.map((option) => (
+          <option key={String(option.value)} value={String(option.value)}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
 
   return (
     <DashboardLayout
       title="Mortgage Rates"
       subtitle={`Current rates and historical trends (${timeframeLabel})`}
       themeClass="theme-mortgage"
-      controls={(
-        <Card className="mb-6 p-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <label htmlFor="mortgage-date-range" className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>
-              Date Range
-            </label>
-            <select
-              id="mortgage-date-range"
-              className="focus-ring rounded-md border px-3 py-2 text-sm"
-              style={{ borderColor: 'var(--border-soft)', color: 'var(--text-primary)', backgroundColor: '#fff' }}
-              value={selectedDays}
-              onChange={(event) => setSelectedDays(event.target.value)}
-            >
-              {DATE_RANGE_OPTIONS.map((option) => (
-                <option key={String(option.value)} value={String(option.value)}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </Card>
-      )}
     >
         {error && (
-          <ErrorAlert error={error} onRetry={fetchMortgageData} />
+          <ErrorAlert
+            error={error}
+            onRetry={() => {
+              fetchCurrentRate();
+              fetchHistoricalData();
+            }}
+          />
         )}
 
         {/* Current Rates Section */}
         {currentRate && (
-          <DashboardSection title="Current Rates">
+          <DashboardSection title="Current Rates" subtitle={currentRatesSubtitle}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card className="kpi-focus-card p-0">
                 <div className="min-h-[240px] flex flex-col text-center">
@@ -234,7 +273,7 @@ export default function MortgageRates() {
 
         {/* Historical Chart Section */}
         {(weeklyData.length > 0 || historicalData.length > 0) && (
-          <DashboardSection title="Historical Trend" subtitle={timeframeLabel}>
+          <DashboardSection title="Historical Trend" subtitle={timeframeLabel} right={historicalTrendControls}>
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
               <div>
                 <h3 className="mb-3 text-base font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>Daily</h3>
