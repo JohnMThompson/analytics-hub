@@ -75,6 +75,7 @@ Edit `/opt/ai-analytics/.env` with production values:
 
 - `APP_DOMAIN=your-subdomain.example.com`
 - `CORS_ALLOWED_ORIGINS=https://your-subdomain.example.com`
+- `VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX` if Google Analytics should be enabled
 - All required `DB_*` values
 - Dashboard toggles (`ENABLE_*_DASHBOARD`)
 

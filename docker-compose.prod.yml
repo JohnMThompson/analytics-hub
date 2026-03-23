@@ -9,6 +9,7 @@ services:
     build:
       args:
         - VITE_API_URL=
+        - VITE_GA_MEASUREMENT_ID=
     expose:
       - "3000"
 
