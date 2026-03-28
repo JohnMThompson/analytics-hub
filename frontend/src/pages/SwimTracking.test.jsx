@@ -15,8 +15,11 @@ describe('formatSwimTime', () => {
 });
 
 describe('formatSwimDateTime', () => {
-  test('returns a localized date-time string', () => {
-    expect(formatSwimDateTime('2026-03-28T10:30:00')).toContain('2026');
+  test('returns a localized date-time string without seconds', () => {
+    const formatted = formatSwimDateTime('2026-03-28T10:30:45');
+
+    expect(formatted).toContain('2026');
+    expect(formatted).not.toContain(':45');
   });
 });
 
@@ -37,6 +40,7 @@ describe('buildRecentWorkoutColumns', () => {
     expect(columns.map((column) => column.key)).toEqual([
       'start_date_time',
       'duration',
+      'location',
       'total_distance_yards',
       'comments',
     ]);
@@ -50,6 +54,7 @@ describe('SwimMobileWorkoutCard', () => {
       start_date_time: '2026-03-28T10:30:00',
       duration: 75,
       total_distance_yards: 2400,
+      location: 'Downtown YMCA',
       comments: 'Main set felt strong.',
     };
 
@@ -59,21 +64,23 @@ describe('SwimMobileWorkoutCard', () => {
     expect(html).toContain('Duration');
     expect(html).toContain('2,400 yds');
     expect(html).toContain('Main set felt strong.');
-    expect(html).toContain('Included');
+    expect(html).toContain('Location');
+    expect(html).toContain('Downtown YMCA');
   });
 
-  test('renders a placeholder when comments are absent', () => {
+  test('renders a placeholder when location and comments are absent', () => {
     const row = {
       id: 5,
       start_date_time: '2026-03-28T10:30:00',
       duration: 45,
       total_distance_yards: 1200,
+      location: '',
       comments: '',
     };
 
     const html = renderToStaticMarkup(<SwimMobileWorkoutCard row={row} />);
 
-    expect(html).toContain('None');
+    expect(html).toContain('Location');
     expect(html).toContain('—');
   });
 });

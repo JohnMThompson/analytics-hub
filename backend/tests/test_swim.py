@@ -12,14 +12,15 @@ except ImportError:
 
 
 @pytest.mark.asyncio
-async def test_get_swim_records_excludes_location_field():
-    """Swim records payload should not expose workout location."""
+async def test_get_swim_records_includes_location_field():
+    """Swim records payload should include workout location for dashboard display."""
     mock_results = [
         (
             1,  # id
             datetime(2026, 1, 28, 16, 13),  # start_date_time
             20,  # duration
             650,  # total_distance_yards
+            "Downtown YMCA",  # location
             650,  # freestyle_distance
             0,  # backstroke_distance
             0,  # breaststroke_distance
@@ -42,4 +43,4 @@ async def test_get_swim_records_excludes_location_field():
     assert len(records) == 1
     assert records[0]["id"] == 1
     assert records[0]["total_distance_yards"] == 650
-    assert "location" not in records[0]
+    assert records[0]["location"] == "Downtown YMCA"
