@@ -30,6 +30,119 @@ const DATE_RANGE_OPTIONS = [
   { value: 730, label: 'Last 24 months' },
 ];
 
+export function formatSwimTime(minutes) {
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return `${hours}h ${mins}m`;
+}
+
+export function formatSwimDateTime(dateTimeStr) {
+  const date = new Date(dateTimeStr);
+  return date.toLocaleString();
+}
+
+export function formatSwimChartDateTick(dateStr, abbreviated = false) {
+  if (!dateStr) return '—';
+
+  const date = new Date(`${dateStr}T00:00:00`);
+  if (Number.isNaN(date.getTime())) {
+    return dateStr;
+  }
+
+  return date.toLocaleDateString('en-US', abbreviated
+    ? { month: 'numeric', day: 'numeric' }
+    : { month: 'short', day: 'numeric', year: '2-digit' });
+}
+
+export function SwimMobileWorkoutCard({ row }) {
+  return (
+    <article
+      className="rounded-2xl border p-4 shadow-sm"
+      style={{
+        borderColor: 'var(--border-soft)',
+        backgroundColor: 'var(--bg-panel)',
+      }}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--accent-600)' }}>
+            Workout
+          </p>
+          <p className="mt-1 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+            {formatSwimDateTime(row?.start_date_time)}
+          </p>
+        </div>
+        <div className="shrink-0 text-right">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--text-muted)' }}>
+            Duration
+          </p>
+          <p className="mt-1 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+            {formatSwimTime(row?.duration || 0)}
+          </p>
+        </div>
+      </div>
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        <div className="rounded-xl px-3 py-2" style={{ backgroundColor: 'var(--accent-50)' }}>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: 'var(--text-muted)' }}>
+            Distance
+          </p>
+          <p className="mt-1 text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
+            {formatInteger(row?.total_distance_yards || 0)} yds
+          </p>
+        </div>
+        <div className="rounded-xl border px-3 py-2" style={{ backgroundColor: '#f8fbff', borderColor: 'var(--border-soft)' }}>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: 'var(--text-muted)' }}>
+            Notes
+          </p>
+          <p className="mt-1 text-sm" style={{ color: 'var(--text-secondary)' }}>
+            {row?.comments ? 'Included' : 'None'}
+          </p>
+        </div>
+      </div>
+      <div className="mt-4 border-t pt-4" style={{ borderColor: 'var(--border-soft)' }}>
+        <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: 'var(--text-muted)' }}>
+          Comments
+        </p>
+        <p className="mt-2 text-sm leading-6 break-words" style={{ color: 'var(--text-secondary)' }}>
+          {row?.comments || '—'}
+        </p>
+      </div>
+    </article>
+  );
+}
+
+export function buildRecentWorkoutColumns() {
+  return [
+    {
+      key: 'start_date_time',
+      header: 'Date & Time',
+      render: (row) => formatSwimDateTime(row.start_date_time),
+      exportValue: (row) => formatSwimDateTime(row.start_date_time),
+    },
+    {
+      key: 'duration',
+      header: 'Duration',
+      align: 'right',
+      render: (row) => formatSwimTime(row.duration),
+      exportValue: (row) => formatSwimTime(row.duration),
+    },
+    {
+      key: 'total_distance_yards',
+      header: 'Distance (yards)',
+      tone: 'primary',
+      align: 'right',
+      render: (row) => formatInteger(row.total_distance_yards),
+    },
+    {
+      key: 'comments',
+      header: 'Comments',
+      tone: 'muted',
+      className: 'text-xs max-w-[260px] truncate',
+      render: (row) => row.comments || '—',
+    },
+  ];
+}
+
 export default function SwimTracking() {
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedDays, setSelectedDays] = useState('365');
@@ -39,10 +152,25 @@ export default function SwimTracking() {
   const [strokes, setStrokes] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     fetchSwimData();
   }, [selectedDays]);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 639px)');
+    const updateIsMobile = (event) => {
+      setIsMobile(event.matches);
+    };
+
+    setIsMobile(mediaQuery.matches);
+    mediaQuery.addEventListener('change', updateIsMobile);
+
+    return () => {
+      mediaQuery.removeEventListener('change', updateIsMobile);
+    };
+  }, []);
 
   const fetchSwimData = async () => {
     try {
@@ -73,17 +201,6 @@ export default function SwimTracking() {
   };
 
   if (loading) return <LoadingSpinner />;
-
-  const formatTime = (minutes) => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return `${hours}h ${mins}m`;
-  };
-
-  const formatDateTime = (dateTimeStr) => {
-    const date = new Date(dateTimeStr);
-    return date.toLocaleString();
-  };
 
   const strokeDistribution = strokes
     ? [
@@ -127,38 +244,12 @@ export default function SwimTracking() {
   })();
   const timeframeLabel = DATE_RANGE_OPTIONS.find((option) => String(option.value) === String(selectedDays))?.label || `Last ${selectedDays} days`;
 
-  const recentWorkoutColumns = [
-    {
-      key: 'start_date_time',
-      header: 'Date & Time',
-      render: (row) => formatDateTime(row.start_date_time),
-      exportValue: (row) => formatDateTime(row.start_date_time),
-    },
-    {
-      key: 'duration',
-      header: 'Duration',
-      align: 'right',
-      render: (row) => formatTime(row.duration),
-      exportValue: (row) => formatTime(row.duration),
-    },
-    {
-      key: 'total_distance_yards',
-      header: 'Distance (yards)',
-      tone: 'primary',
-      align: 'right',
-      render: (row) => formatInteger(row.total_distance_yards),
-    },
-    {
-      key: 'comments',
-      header: 'Comments',
-      tone: 'muted',
-      className: 'text-xs max-w-[260px] truncate',
-      render: (row) => row.comments || '—',
-    },
-  ];
+  const recentWorkoutColumns = buildRecentWorkoutColumns();
   const averageYardsPerWorkout = summary?.workout_count ? Math.round((summary.total_yards || 0) / summary.workout_count) : 0;
   const averageMinutesPerWorkout = summary?.workout_count ? Math.round(((summary.total_hours || 0) * 60) / summary.workout_count) : 0;
-  const dailyAxisInterval = Math.max(0, Math.floor(filledDailyData.length / 8));
+  const dailyAxisInterval = isMobile
+    ? Math.max(0, Math.floor(filledDailyData.length / 4))
+    : Math.max(0, Math.floor(filledDailyData.length / 8));
 
   return (
     <DashboardLayout
@@ -307,9 +398,10 @@ export default function SwimTracking() {
                   bars={[{ dataKey: 'total_yards', name: 'Distance (yards)', color: 'var(--chart-4)' }]}
                   height={400}
                   xAxisInterval={dailyAxisInterval}
+                  xTickFormatter={(value) => formatSwimChartDateTick(value, isMobile)}
                   yDomain={[0, 'auto']}
                   valueFormatter={(value) => `${formatInteger(value)} yards`}
-                  labelFormatter={(date) => `Date: ${date}`}
+                  labelFormatter={(date) => `Date: ${formatSwimChartDateTick(date, false)}`}
                 />
               </DashboardSection>
             )}
@@ -320,18 +412,25 @@ export default function SwimTracking() {
                 title="Recent Workouts"
                 subtitle="Most recent swim sessions with duration, distance, and notes."
               >
-                <DataTablePanel>
-                  <DataTable
-                    columns={recentWorkoutColumns}
-                    rows={records}
-                    rowKey="id"
-                    emptyMessage="No workouts found."
-                    exportConfig={{
-                      fileName: `swim-tracking-recent-workouts-${selectedDays === 'all' ? 'all-time' : `${selectedDays}-days`}`,
-                      sheetName: 'Recent Workouts',
-                    }}
-                  />
-                </DataTablePanel>
+                <div className="grid gap-3 sm:hidden">
+                  {records.map((row) => (
+                    <SwimMobileWorkoutCard key={row.id} row={row} />
+                  ))}
+                </div>
+                <div className="hidden sm:block">
+                  <DataTablePanel>
+                    <DataTable
+                      columns={recentWorkoutColumns}
+                      rows={records}
+                      rowKey="id"
+                      emptyMessage="No workouts found."
+                      exportConfig={{
+                        fileName: `swim-tracking-recent-workouts-${selectedDays === 'all' ? 'all-time' : `${selectedDays}-days`}`,
+                        sheetName: 'Recent Workouts',
+                      }}
+                    />
+                  </DataTablePanel>
+                </div>
               </DashboardSection>
             )}
           </>
