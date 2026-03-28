@@ -38,7 +38,13 @@ export function formatSwimTime(minutes) {
 
 export function formatSwimDateTime(dateTimeStr) {
   const date = new Date(dateTimeStr);
-  return date.toLocaleString();
+  return date.toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
 }
 
 export function formatSwimChartDateTick(dateStr, abbreviated = false) {
@@ -92,10 +98,10 @@ export function SwimMobileWorkoutCard({ row }) {
         </div>
         <div className="rounded-xl border px-3 py-2" style={{ backgroundColor: '#f8fbff', borderColor: 'var(--border-soft)' }}>
           <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: 'var(--text-muted)' }}>
-            Notes
+            Location
           </p>
           <p className="mt-1 text-sm" style={{ color: 'var(--text-secondary)' }}>
-            {row?.comments ? 'Included' : 'None'}
+            {row?.location || '—'}
           </p>
         </div>
       </div>
@@ -125,6 +131,12 @@ export function buildRecentWorkoutColumns() {
       align: 'right',
       render: (row) => formatSwimTime(row.duration),
       exportValue: (row) => formatSwimTime(row.duration),
+    },
+    {
+      key: 'location',
+      header: 'Location',
+      render: (row) => row.location || '—',
+      exportValue: (row) => row.location || '—',
     },
     {
       key: 'total_distance_yards',
