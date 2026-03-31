@@ -1,9 +1,9 @@
 """
 Integration-style smoke tests for key API endpoints.
 """
+from contextlib import asynccontextmanager
 import pytest
 import httpx
-import pytest_asyncio
 
 try:
     from app import app, registry
@@ -11,60 +11,63 @@ except ImportError:
     from backend.app import app, registry
 
 
-@pytest_asyncio.fixture
-async def client():
+@asynccontextmanager
+async def get_client():
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as test_client:
         yield test_client
 
 
 @pytest.mark.asyncio
-async def test_dashboards_endpoint_smoke(client):
-    response = await client.get("/api/dashboards")
-    assert response.status_code == 200
-    body = response.json()
-    assert "dashboards" in body
-    assert "total" in body
-    assert "x-request-id" in response.headers
+async def test_dashboards_endpoint_smoke():
+    async with get_client() as client:
+        response = await client.get("/api/dashboards")
+        assert response.status_code == 200
+        body = response.json()
+        assert "dashboards" in body
+        assert "total" in body
+        assert "x-request-id" in response.headers
 
 
 @pytest.mark.asyncio
-async def test_openapi_groups_general_and_dashboard_tags(client):
-    response = await client.get("/openapi.json")
-    assert response.status_code == 200
+async def test_openapi_groups_general_and_dashboard_tags():
+    async with get_client() as client:
+        response = await client.get("/openapi.json")
+        assert response.status_code == 200
 
-    schema = response.json()
-    tag_names = [tag["name"] for tag in schema["tags"]]
-    assert tag_names[0] == "General"
-    assert "default" not in tag_names
-    assert "dashboards" not in tag_names
+        schema = response.json()
+        tag_names = [tag["name"] for tag in schema["tags"]]
+        assert tag_names[0] == "General"
+        assert "default" not in tag_names
+        assert "dashboards" not in tag_names
 
-    assert schema["paths"]["/api/health"]["get"]["tags"] == ["General"]
-    assert schema["paths"]["/api/ready"]["get"]["tags"] == ["General"]
-    assert schema["paths"]["/api/dashboards"]["get"]["tags"] == ["General"]
+        assert schema["paths"]["/api/health"]["get"]["tags"] == ["General"]
+        assert schema["paths"]["/api/ready"]["get"]["tags"] == ["General"]
+        assert schema["paths"]["/api/dashboards"]["get"]["tags"] == ["General"]
 
-    dashboard_operation_tags = {
-        tuple(operation["tags"])
-        for path, methods in schema["paths"].items()
-        if path.startswith("/api/dashboards/") and path != "/api/dashboards"
-        for operation in methods.values()
-    }
-    assert dashboard_operation_tags
-    assert all(tags != ("dashboards",) for tags in dashboard_operation_tags)
-    assert all(tags != ("default",) for tags in dashboard_operation_tags)
-    assert all(len(tags) == 1 for tags in dashboard_operation_tags)
-    assert ("Mortgage Rates",) in dashboard_operation_tags
-
-
-@pytest.mark.asyncio
-async def test_request_id_header_is_echoed(client):
-    response = await client.get("/api/health", headers={"x-request-id": "test-request-id"})
-    assert response.status_code == 200
-    assert response.headers.get("x-request-id") == "test-request-id"
+        dashboard_operation_tags = {
+            tuple(operation["tags"])
+            for path, methods in schema["paths"].items()
+            if path.startswith("/api/dashboards/") and path != "/api/dashboards"
+            for operation in methods.values()
+        }
+        assert dashboard_operation_tags
+        assert all(tags != ("dashboards",) for tags in dashboard_operation_tags)
+        assert all(tags != ("default",) for tags in dashboard_operation_tags)
+        assert all(len(tags) == 1 for tags in dashboard_operation_tags)
+        assert ("Mortgage Rates",) in dashboard_operation_tags
 
 
 @pytest.mark.asyncio
-async def test_mortgage_current_rate_endpoint_smoke(client, monkeypatch):
+async def test_request_id_header_is_echoed():
+    async with get_client() as client:
+        response = await client.get("/api/health", headers={"x-request-id": "test-request-id"})
+        assert response.status_code == 200
+        assert response.headers.get("x-request-id") == "test-request-id"
+
+
+@pytest.mark.asyncio
+async def test_mortgage_current_rate_endpoint_smoke(monkeypatch):
     dashboard = registry.dashboards.get("mortgage_rates")
     if dashboard is None:
         pytest.skip("Mortgage dashboard is not registered")
@@ -78,13 +81,14 @@ async def test_mortgage_current_rate_endpoint_smoke(client, monkeypatch):
     )
     monkeypatch.setattr(dashboard_module, "get_current_rate", fake_current_rate)
 
-    response = await client.get("/api/dashboards/mortgage_rates/current_rate")
-    assert response.status_code == 200
-    assert response.json()["rate_30yr"] == 6.25
+    async with get_client() as client:
+        response = await client.get("/api/dashboards/mortgage_rates/current_rate")
+        assert response.status_code == 200
+        assert response.json()["rate_30yr"] == 6.25
 
 
 @pytest.mark.asyncio
-async def test_mortgage_weekly_rates_endpoint_smoke(client, monkeypatch):
+async def test_mortgage_weekly_rates_endpoint_smoke(monkeypatch):
     dashboard = registry.dashboards.get("mortgage_rates")
     if dashboard is None:
         pytest.skip("Mortgage dashboard is not registered")
@@ -98,15 +102,16 @@ async def test_mortgage_weekly_rates_endpoint_smoke(client, monkeypatch):
     )
     monkeypatch.setattr(dashboard_module, "get_weekly_rates", fake_weekly_rates)
 
-    response = await client.get("/api/dashboards/mortgage_rates/weekly_rates")
-    assert response.status_code == 200
-    payload = response.json()
-    assert isinstance(payload, list)
-    assert payload[0]["week_start"] == "2026-01-05"
+    async with get_client() as client:
+        response = await client.get("/api/dashboards/mortgage_rates/weekly_rates")
+        assert response.status_code == 200
+        payload = response.json()
+        assert isinstance(payload, list)
+        assert payload[0]["week_start"] == "2026-01-05"
 
 
 @pytest.mark.asyncio
-async def test_swim_summary_endpoint_smoke(client, monkeypatch):
+async def test_swim_summary_endpoint_smoke(monkeypatch):
     dashboard = registry.dashboards.get("swim_tracking")
     if dashboard is None:
         pytest.skip("Swim dashboard is not registered")
@@ -120,13 +125,14 @@ async def test_swim_summary_endpoint_smoke(client, monkeypatch):
     )
     monkeypatch.setattr(dashboard_module, "get_swim_summary", fake_swim_summary)
 
-    response = await client.get("/api/dashboards/swim_tracking/summary")
-    assert response.status_code == 200
-    assert response.json()["workout_count"] == 42
+    async with get_client() as client:
+        response = await client.get("/api/dashboards/swim_tracking/summary")
+        assert response.status_code == 200
+        assert response.json()["workout_count"] == 42
 
 
 @pytest.mark.asyncio
-async def test_home_office_temperature_current_conditions_smoke(client, monkeypatch):
+async def test_home_office_temperature_current_conditions_smoke(monkeypatch):
     dashboard = registry.dashboards.get("home_office_temperature")
     if dashboard is None:
         pytest.skip("Home office temperature dashboard is not registered")
@@ -140,14 +146,15 @@ async def test_home_office_temperature_current_conditions_smoke(client, monkeypa
     )
     monkeypatch.setattr(dashboard_module, "get_current_conditions", fake_current_conditions)
 
-    response = await client.get("/api/dashboards/home_office_temperature/current_conditions")
-    assert response.status_code == 200
-    payload = response.json()
-    assert payload["temperature_f"] == 66.92
+    async with get_client() as client:
+        response = await client.get("/api/dashboards/home_office_temperature/current_conditions")
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["temperature_f"] == 66.92
 
 
 @pytest.mark.asyncio
-async def test_halloween_summary_endpoint_smoke(client, monkeypatch):
+async def test_halloween_summary_endpoint_smoke(monkeypatch):
     dashboard = registry.dashboards.get("halloween_tracking")
     if dashboard is None:
         pytest.skip("Halloween dashboard is not registered")
@@ -161,15 +168,16 @@ async def test_halloween_summary_endpoint_smoke(client, monkeypatch):
     )
     monkeypatch.setattr(dashboard_module, "get_summary", fake_summary)
 
-    response = await client.get("/api/dashboards/halloween_tracking/summary")
-    assert response.status_code == 200
-    payload = response.json()
-    assert payload["latest_year"] == 2025
-    assert payload["latest_count"] == 144
+    async with get_client() as client:
+        response = await client.get("/api/dashboards/halloween_tracking/summary")
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["latest_year"] == 2025
+        assert payload["latest_count"] == 144
 
 
 @pytest.mark.asyncio
-async def test_dakota_data_endpoint_smoke(client, monkeypatch):
+async def test_dakota_data_endpoint_smoke(monkeypatch):
     dashboard = registry.dashboards.get("dakota_concert_calendar")
     if dashboard is None:
         pytest.skip("Dakota dashboard is not registered")
@@ -194,8 +202,9 @@ async def test_dakota_data_endpoint_smoke(client, monkeypatch):
     )
     monkeypatch.setattr(dashboard_module, "get_upcoming_events", fake_upcoming_events)
 
-    response = await client.get("/api/dashboards/dakota_concert_calendar/data")
-    assert response.status_code == 200
-    payload = response.json()
-    assert "events" in payload
-    assert payload["events"][0]["performer_name"] == "Sample Performer"
+    async with get_client() as client:
+        response = await client.get("/api/dashboards/dakota_concert_calendar/data")
+        assert response.status_code == 200
+        payload = response.json()
+        assert "events" in payload
+        assert payload["events"][0]["performer_name"] == "Sample Performer"
