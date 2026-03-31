@@ -83,12 +83,14 @@ async def test_get_swim_records_omits_limit_when_not_requested():
 async def test_swim_dashboard_records_endpoint_uses_unlimited_all_time(monkeypatch):
     """All-time records requests should not inject a row limit."""
     captured = {}
+    fake_engine = object()
 
     async def fake_swim_records(_engine, days=365, limit=50):
         captured["days"] = days
         captured["limit"] = limit
         return [{"id": 1}]
 
+    monkeypatch.setattr(swim_dashboard_module, "get_db_engine", lambda _database: fake_engine)
     dashboard = SwimTrackingDashboard(db_config={})
     monkeypatch.setattr(swim_dashboard_module, "get_swim_records", fake_swim_records)
 
