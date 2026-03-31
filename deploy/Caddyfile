@@ -41,3 +41,28 @@
     format console
   }
 }
+
+swim-writer.johnthompson.io {
+  encode zstd gzip
+
+  @blocked {
+    path /.env /.env.* /.git /.git/* /.vscode /.vscode/* /server-status /console /console/*
+  }
+
+  route {
+    respond @blocked 404
+    reverse_proxy swim-workout-writer:8000
+  }
+
+  header {
+    Strict-Transport-Security "max-age=31536000; includeSubDomains;preload"
+    X-Content-Type-Options "nosniff"
+    X-Frame-Options "SAMEORIGIN"
+    Referrer-Policy "strict-origin-when-cross-origin"
+  }
+
+log {
+    output stdout
+    format console
+  }
+}
