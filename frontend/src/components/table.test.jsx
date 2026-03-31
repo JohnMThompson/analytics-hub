@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import DataTable, { resolveExportFormat } from './table';
+import DataTable, { TableExportButton, resolveExportFormat, resolveExportRows } from './table';
 
 describe('DataTable', () => {
   test('renders headers and row values', () => {
@@ -51,6 +51,21 @@ describe('DataTable', () => {
     expect(html).toContain('Export');
   });
 
+  test('renders footer content without the export utility row when export is disabled', () => {
+    const html = renderToStaticMarkup(
+      <DataTable
+        columns={[{ key: 'name', header: 'Name' }]}
+        rows={[{ id: 1, name: 'Workout 1' }]}
+        rowKey="id"
+        exportConfig={{ enabled: false, fileName: 'workouts', sheetName: 'Workouts' }}
+        footerContent={<p>Page 1 of 3</p>}
+      />,
+    );
+
+    expect(html).toContain('Page 1 of 3');
+    expect(html).not.toContain('Export');
+  });
+
   test('does not render the export dialog before the user opens it', () => {
     const columns = [{ key: 'name', header: 'Name' }];
     const rows = [{ id: 1, name: 'Dakota Jazz' }];
@@ -74,5 +89,28 @@ describe('DataTable', () => {
     expect(resolveExportFormat('xls')).toBe('xls');
     expect(resolveExportFormat('excel')).toBe('xls');
     expect(resolveExportFormat('')).toBeNull();
+  });
+
+  test('prefers exportConfig rows over visible rows for export actions', () => {
+    const visibleRows = [{ id: 1, name: 'Workout 1' }];
+    const exportRows = [
+      { id: 1, name: 'Workout 1' },
+      { id: 2, name: 'Workout 2' },
+    ];
+
+    expect(resolveExportRows(visibleRows, { rows: exportRows })).toEqual(exportRows);
+    expect(resolveExportRows(visibleRows, null)).toEqual(visibleRows);
+  });
+
+  test('renders the standalone export button label', () => {
+    const html = renderToStaticMarkup(
+      <TableExportButton
+        columns={[{ key: 'name', header: 'Name' }]}
+        rows={[{ id: 1, name: 'Workout 1' }]}
+        exportConfig={{ fileName: 'workouts', sheetName: 'Workouts' }}
+      />,
+    );
+
+    expect(html).toContain('Export');
   });
 });
