@@ -18,8 +18,10 @@ import {
   BarChartPanel,
   ColumnChartPanel,
 } from '../components/charts';
-import DataTable from '../components/table';
+import DataTable, { TableExportButton } from '../components/table';
 import { formatDecimal, formatDurationHours, formatInteger } from '../utils/formatters';
+
+export const WORKOUTS_PAGE_SIZE = 50;
 
 const DATE_RANGE_OPTIONS = [
   { value: 'all', label: 'All Time' },
@@ -155,6 +157,19 @@ export function buildRecentWorkoutColumns() {
   ];
 }
 
+export function paginateRecords(records = [], page = 1, pageSize = WORKOUTS_PAGE_SIZE) {
+  const safePageSize = Number.isInteger(pageSize) && pageSize > 0 ? pageSize : WORKOUTS_PAGE_SIZE;
+  const totalPages = Math.max(1, Math.ceil(records.length / safePageSize));
+  const safePage = Math.min(Math.max(page, 1), totalPages);
+  const startIndex = (safePage - 1) * safePageSize;
+
+  return {
+    currentPage: safePage,
+    totalPages,
+    pageRows: records.slice(startIndex, startIndex + safePageSize),
+  };
+}
+
 export default function SwimTracking() {
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedDays, setSelectedDays] = useState('365');
@@ -165,9 +180,14 @@ export default function SwimTracking() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [recordsPage, setRecordsPage] = useState(1);
 
   useEffect(() => {
     fetchSwimData();
+  }, [selectedDays]);
+
+  useEffect(() => {
+    setRecordsPage(1);
   }, [selectedDays]);
 
   useEffect(() => {
@@ -196,7 +216,7 @@ export default function SwimTracking() {
       const [sum, daily, recs, strokeData] = await Promise.all([
         apiClient.getDashboardEndpoint('swim_tracking', 'summary', rangeParams),
         apiClient.getDashboardEndpoint('swim_tracking', 'distance_by_date', rangeParams),
-        apiClient.getDashboardEndpoint('swim_tracking', 'records', { ...rangeParams, limit: 50 }),
+        apiClient.getDashboardEndpoint('swim_tracking', 'records', rangeParams),
         apiClient.getDashboardEndpoint('swim_tracking', 'stroke_breakdown', rangeParams),
       ]);
 
@@ -257,6 +277,7 @@ export default function SwimTracking() {
   const timeframeLabel = DATE_RANGE_OPTIONS.find((option) => String(option.value) === String(selectedDays))?.label || `Last ${selectedDays} days`;
 
   const recentWorkoutColumns = buildRecentWorkoutColumns();
+  const { currentPage, totalPages, pageRows } = paginateRecords(records, recordsPage, WORKOUTS_PAGE_SIZE);
   const averageYardsPerWorkout = summary?.workout_count ? Math.round((summary.total_yards || 0) / summary.workout_count) : 0;
   const averageMinutesPerWorkout = summary?.workout_count ? Math.round(((summary.total_hours || 0) * 60) / summary.workout_count) : 0;
   const dailyAxisInterval = isMobile
@@ -421,11 +442,22 @@ export default function SwimTracking() {
             {/* Records Table */}
             {records.length > 0 && (
               <DashboardSection
-                title="Recent Workouts"
-                subtitle="Most recent swim sessions with duration, distance, and notes."
+                title="Workouts"
+                subtitle={`${timeframeLabel} swim sessions with duration, distance, and notes.`}
+                right={(
+                  <TableExportButton
+                    columns={recentWorkoutColumns}
+                    rows={records}
+                    exportConfig={{
+                      fileName: `swim-tracking-workouts-${selectedDays === 'all' ? 'all-time' : `${selectedDays}-days`}`,
+                      sheetName: 'Workouts',
+                      rows: records,
+                    }}
+                  />
+                )}
               >
                 <div className="grid gap-3 sm:hidden">
-                  {records.map((row) => (
+                  {pageRows.map((row) => (
                     <SwimMobileWorkoutCard key={row.id} row={row} />
                   ))}
                 </div>
@@ -433,13 +465,42 @@ export default function SwimTracking() {
                   <DataTablePanel>
                     <DataTable
                       columns={recentWorkoutColumns}
-                      rows={records}
+                      rows={pageRows}
                       rowKey="id"
                       emptyMessage="No workouts found."
                       exportConfig={{
-                        fileName: `swim-tracking-recent-workouts-${selectedDays === 'all' ? 'all-time' : `${selectedDays}-days`}`,
-                        sheetName: 'Recent Workouts',
+                        enabled: false,
+                        fileName: `swim-tracking-workouts-${selectedDays === 'all' ? 'all-time' : `${selectedDays}-days`}`,
+                        sheetName: 'Workouts',
+                        rows: records,
                       }}
+                      footerContent={records.length > WORKOUTS_PAGE_SIZE ? (
+                        <>
+                          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                            Page {currentPage} of {totalPages}
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              className="focus-ring rounded-full border px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] disabled:cursor-not-allowed disabled:opacity-50"
+                              style={{ borderColor: 'var(--border-soft)', color: 'var(--text-secondary)' }}
+                              onClick={() => setRecordsPage((page) => Math.max(1, page - 1))}
+                              disabled={currentPage === 1}
+                            >
+                              Previous
+                            </button>
+                            <button
+                              type="button"
+                              className="focus-ring rounded-full border px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] disabled:cursor-not-allowed disabled:opacity-50"
+                              style={{ borderColor: 'var(--border-soft)', color: 'var(--text-secondary)' }}
+                              onClick={() => setRecordsPage((page) => Math.min(totalPages, page + 1))}
+                              disabled={currentPage === totalPages}
+                            >
+                              Next
+                            </button>
+                          </div>
+                        </>
+                      ) : null}
                     />
                   </DataTablePanel>
                 </div>

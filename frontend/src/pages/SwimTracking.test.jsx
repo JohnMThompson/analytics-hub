@@ -1,11 +1,13 @@
 import { describe, expect, test } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import {
+  WORKOUTS_PAGE_SIZE,
   SwimMobileWorkoutCard,
   buildRecentWorkoutColumns,
   formatSwimChartDateTick,
   formatSwimDateTime,
   formatSwimTime,
+  paginateRecords,
 } from './SwimTracking';
 
 describe('formatSwimTime', () => {
@@ -44,6 +46,42 @@ describe('buildRecentWorkoutColumns', () => {
       'total_distance_yards',
       'comments',
     ]);
+  });
+});
+
+describe('paginateRecords', () => {
+  test('returns the first 50 workouts on the first page', () => {
+    const records = Array.from({ length: 75 }, (_, index) => ({ id: index + 1 }));
+
+    const result = paginateRecords(records, 1, WORKOUTS_PAGE_SIZE);
+
+    expect(result.currentPage).toBe(1);
+    expect(result.totalPages).toBe(2);
+    expect(result.pageRows).toHaveLength(50);
+    expect(result.pageRows[0].id).toBe(1);
+    expect(result.pageRows.at(-1).id).toBe(50);
+  });
+
+  test('returns the remaining workouts on the second page', () => {
+    const records = Array.from({ length: 75 }, (_, index) => ({ id: index + 1 }));
+
+    const result = paginateRecords(records, 2, WORKOUTS_PAGE_SIZE);
+
+    expect(result.currentPage).toBe(2);
+    expect(result.totalPages).toBe(2);
+    expect(result.pageRows).toHaveLength(25);
+    expect(result.pageRows[0].id).toBe(51);
+    expect(result.pageRows.at(-1).id).toBe(75);
+  });
+
+  test('clamps an out-of-range page back to the first page after filter changes', () => {
+    const records = Array.from({ length: 10 }, (_, index) => ({ id: index + 1 }));
+
+    const result = paginateRecords(records, 4, WORKOUTS_PAGE_SIZE);
+
+    expect(result.currentPage).toBe(1);
+    expect(result.totalPages).toBe(1);
+    expect(result.pageRows).toHaveLength(10);
   });
 });
 

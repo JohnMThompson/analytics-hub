@@ -82,7 +82,7 @@ class SwimTrackingDashboard(BaseDashboard):
         except Exception as e:
             self._raise_internal_error("distance_by_date", e)
     
-    async def get_records_endpoint(self, days: int = 365, limit: int = 50, all_time: bool = False) -> List[Dict[str, Any]]:
+    async def get_records_endpoint(self, days: int = 365, limit: Optional[int] = None, all_time: bool = False) -> List[Dict[str, Any]]:
         """Get personal swimming records"""
         try:
             days_filter: Optional[int] = None if all_time else days

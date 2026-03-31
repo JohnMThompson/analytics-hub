@@ -83,19 +83,20 @@ async def get_distance_by_date(engine: Engine, days: Optional[int] = 365) -> Lis
         ]
 
 
-async def get_swim_records(engine: Engine, days: Optional[int] = 365, limit: int = 50) -> List[Dict[str, Any]]:
+async def get_swim_records(engine: Engine, days: Optional[int] = 365, limit: Optional[int] = 50) -> List[Dict[str, Any]]:
     """
     Get individual swim records for the specified period.
     
     Args:
         engine: SQLAlchemy engine
         days: Number of days of history to retrieve
-        limit: Maximum number of records to return
+        limit: Maximum number of records to return; omit for all matching rows
     
     Returns:
         List of swim records with details
     """
     where_clause = "WHERE start_date_time >= DATE_SUB(NOW(), INTERVAL :days DAY)" if days is not None else ""
+    limit_clause = "LIMIT :limit" if limit is not None else ""
     query = text(f"""
         SELECT 
             id,
@@ -111,11 +112,13 @@ async def get_swim_records(engine: Engine, days: Optional[int] = 365, limit: int
         FROM swim_tracking
         {where_clause}
         ORDER BY start_date_time DESC
-        LIMIT :limit
+        {limit_clause}
     """)
     
     with engine.connect() as conn:
-        params = {"limit": limit}
+        params = {}
+        if limit is not None:
+            params["limit"] = limit
         if days is not None:
             params["days"] = days
         results = conn.execute(query, params).fetchall()
