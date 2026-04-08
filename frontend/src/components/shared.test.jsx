@@ -25,4 +25,22 @@ describe('MetricCard', () => {
     expect(html).toContain('from previous');
     expect(html).toContain('Compared to last week');
   });
+
+  test('renders stacked detail rows when multiple values share a card', () => {
+    const html = renderToStaticMarkup(
+      <MetricCard
+        label="Current Rate"
+        details={[
+          { label: '30-Year Fixed', value: '6.125%' },
+          { label: '7/6 ARM', value: '5.125%' },
+        ]}
+      />,
+    );
+
+    expect(html).toContain('Current Rate');
+    expect(html).toContain('30-Year Fixed');
+    expect(html).toContain('6.125%');
+    expect(html).toContain('7/6 ARM');
+    expect(html).toContain('5.125%');
+  });
 });

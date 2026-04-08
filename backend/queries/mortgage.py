@@ -6,6 +6,24 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta
 
 
+def _to_float(value: Any) -> Optional[float]:
+    if value is None:
+        return None
+    return float(value)
+
+
+def _round_or_none(value: Optional[float]) -> Optional[float]:
+    return round(value, 4) if value is not None else None
+
+
+def _effective_rate(rate: Optional[float], points: Optional[float]) -> Optional[float]:
+    if rate is None:
+        return None
+    if points is None:
+        return rate
+    return rate + (points * 0.25)
+
+
 async def get_current_rate(engine: Engine) -> Dict[str, Any]:
     """
     Get the most recent mortgage rate record with points adjusted out.
@@ -23,8 +41,10 @@ async def get_current_rate(engine: Engine) -> Dict[str, Any]:
             timestamp,
             `30_year_fixed_rate` as rate_30yr,
             `30_year_fixed_points` as points_30yr,
-            `71_arm_rate` as rate_7arm,
-            `71_arm_point` as points_7arm
+            `71_arm_rate` as rate_71arm,
+            `71_arm_point` as points_71arm,
+            `76_month_sofr_arm_rate` as rate_76arm,
+            `76_month_sofr_arm_points` as points_76arm
         FROM daily_rates
         ORDER BY timestamp DESC
         LIMIT 1
@@ -33,14 +53,17 @@ async def get_current_rate(engine: Engine) -> Dict[str, Any]:
     with engine.connect() as conn:
         result = conn.execute(query).fetchone()
         if result:
-            rate_30yr = float(result[3]) if result[3] else None
-            points_30yr = float(result[4]) if result[4] else None
-            rate_7arm = float(result[5]) if result[5] else None
-            points_7arm = float(result[6]) if result[6] else None
+            rate_30yr = _to_float(result[3])
+            points_30yr = _to_float(result[4])
+            rate_71arm = _to_float(result[5])
+            points_71arm = _to_float(result[6])
+            rate_76arm = _to_float(result[7])
+            points_76arm = _to_float(result[8])
             
             # Calculate effective rates (rate without points applied)
-            effective_30yr = rate_30yr + (points_30yr * 0.25) if rate_30yr and points_30yr else rate_30yr
-            effective_7arm = rate_7arm + (points_7arm * 0.25) if rate_7arm and points_7arm else rate_7arm
+            effective_30yr = _effective_rate(rate_30yr, points_30yr)
+            effective_71arm = _effective_rate(rate_71arm, points_71arm)
+            effective_76arm = _effective_rate(rate_76arm, points_76arm)
             
             return {
                 "id": result[0],
@@ -48,10 +71,13 @@ async def get_current_rate(engine: Engine) -> Dict[str, Any]:
                 "timestamp": result[2].isoformat() if result[2] else None,
                 "rate_30yr": rate_30yr,
                 "points_30yr": points_30yr,
-                "effective_rate_30yr": round(effective_30yr, 4) if effective_30yr else None,
-                "rate_7arm": rate_7arm,
-                "points_7arm": points_7arm,
-                "effective_rate_7arm": round(effective_7arm, 4) if effective_7arm else None,
+                "effective_rate_30yr": _round_or_none(effective_30yr),
+                "rate_71arm": rate_71arm,
+                "points_71arm": points_71arm,
+                "effective_rate_71arm": _round_or_none(effective_71arm),
+                "rate_76arm": rate_76arm,
+                "points_76arm": points_76arm,
+                "effective_rate_76arm": _round_or_none(effective_76arm),
             }
         return {}
 
@@ -74,8 +100,10 @@ async def get_historical_rates(engine: Engine, days: Optional[int] = 365) -> Lis
             DATE(timestamp) as date,
             AVG(`30_year_fixed_rate`) as rate_30yr,
             AVG(`30_year_fixed_points`) as points_30yr,
-            AVG(`71_arm_rate`) as rate_7arm,
-            AVG(`71_arm_point`) as points_7arm
+            AVG(`71_arm_rate`) as rate_71arm,
+            AVG(`71_arm_point`) as points_71arm,
+            AVG(`76_month_sofr_arm_rate`) as rate_76arm,
+            AVG(`76_month_sofr_arm_points`) as points_76arm
         FROM daily_rates
         {where_clause}
         GROUP BY DATE(timestamp)
@@ -88,12 +116,15 @@ async def get_historical_rates(engine: Engine, days: Optional[int] = 365) -> Lis
         return [
             {
                 "date": result[0].isoformat() if result[0] else None,
-                "rate_30yr": round(float(result[1]), 4) if result[1] else None,
-                "points_30yr": round(float(result[2]), 4) if result[2] else None,
-                "effective_rate_30yr": round(float(result[1]) + (float(result[2]) * 0.25), 4) if result[1] and result[2] else None,
-                "rate_7arm": round(float(result[3]), 4) if result[3] else None,
-                "points_7arm": round(float(result[4]), 4) if result[4] else None,
-                "effective_rate_7arm": round(float(result[3]) + (float(result[4]) * 0.25), 4) if result[3] and result[4] else None,
+                "rate_30yr": _round_or_none(_to_float(result[1])),
+                "points_30yr": _round_or_none(_to_float(result[2])),
+                "effective_rate_30yr": _round_or_none(_effective_rate(_to_float(result[1]), _to_float(result[2]))),
+                "rate_71arm": _round_or_none(_to_float(result[3])),
+                "points_71arm": _round_or_none(_to_float(result[4])),
+                "effective_rate_71arm": _round_or_none(_effective_rate(_to_float(result[3]), _to_float(result[4]))),
+                "rate_76arm": _round_or_none(_to_float(result[5])),
+                "points_76arm": _round_or_none(_to_float(result[6])),
+                "effective_rate_76arm": _round_or_none(_effective_rate(_to_float(result[5]), _to_float(result[6]))),
             }
             for result in results
         ]
@@ -110,10 +141,13 @@ async def get_weekly_rates(engine: Engine, days: Optional[int] = 365) -> List[Di
             MIN(DATE_SUB(DATE(timestamp), INTERVAL WEEKDAY(timestamp) DAY)) as week_start,
             AVG(`30_year_fixed_rate`) as rate_30yr,
             AVG(`30_year_fixed_points`) as points_30yr,
-            AVG(`71_arm_rate`) as rate_7arm,
-            AVG(`71_arm_point`) as points_7arm,
+            AVG(`71_arm_rate`) as rate_71arm,
+            AVG(`71_arm_point`) as points_71arm,
+            AVG(`76_month_sofr_arm_rate`) as rate_76arm,
+            AVG(`76_month_sofr_arm_points`) as points_76arm,
             AVG(`30_year_fixed_rate` + (COALESCE(`30_year_fixed_points`, 0) * 0.25)) as effective_rate_30yr,
-            AVG(`71_arm_rate` + (COALESCE(`71_arm_point`, 0) * 0.25)) as effective_rate_7arm
+            AVG(`71_arm_rate` + (COALESCE(`71_arm_point`, 0) * 0.25)) as effective_rate_71arm,
+            AVG(`76_month_sofr_arm_rate` + (COALESCE(`76_month_sofr_arm_points`, 0) * 0.25)) as effective_rate_76arm
         FROM daily_rates
         {where_clause}
         GROUP BY YEAR(timestamp), WEEK(timestamp, 1)
@@ -126,12 +160,15 @@ async def get_weekly_rates(engine: Engine, days: Optional[int] = 365) -> List[Di
         return [
             {
                 "week_start": result[0].isoformat() if result[0] else None,
-                "rate_30yr": round(float(result[1]), 4) if result[1] else None,
-                "points_30yr": round(float(result[2]), 4) if result[2] else None,
-                "effective_rate_30yr": round(float(result[5]), 4) if result[5] else None,
-                "rate_7arm": round(float(result[3]), 4) if result[3] else None,
-                "points_7arm": round(float(result[4]), 4) if result[4] else None,
-                "effective_rate_7arm": round(float(result[6]), 4) if result[6] else None,
+                "rate_30yr": _round_or_none(_to_float(result[1])),
+                "points_30yr": _round_or_none(_to_float(result[2])),
+                "effective_rate_30yr": _round_or_none(_to_float(result[7])),
+                "rate_71arm": _round_or_none(_to_float(result[3])),
+                "points_71arm": _round_or_none(_to_float(result[4])),
+                "effective_rate_71arm": _round_or_none(_to_float(result[8])),
+                "rate_76arm": _round_or_none(_to_float(result[5])),
+                "points_76arm": _round_or_none(_to_float(result[6])),
+                "effective_rate_76arm": _round_or_none(_to_float(result[9])),
             }
             for result in results
         ]
