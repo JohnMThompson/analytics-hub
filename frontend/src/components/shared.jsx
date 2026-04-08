@@ -98,11 +98,16 @@ export function MetricCard({
   state = 'neutral',
   secondary = '',
   sparkline = null,
+  details = [],
 }) {
   const changeClass = change > 0 ? 'status-positive' : change < 0 ? 'status-negative' : 'status-neutral';
   const stateClass = state === 'positive' ? 'status-positive' : state === 'negative' ? 'status-negative' : 'status-neutral';
   const isEmphasis = variant === 'emphasis';
   const isCompact = variant === 'compact';
+  const hasDetails = Array.isArray(details) && details.length > 0;
+  const getStateClass = (detailState) => (
+    detailState === 'positive' ? 'status-positive' : detailState === 'negative' ? 'status-negative' : 'status-neutral'
+  );
 
   const containerClass = isEmphasis
     ? 'p-6 border-l-4'
@@ -119,16 +124,35 @@ export function MetricCard({
       <p className={`font-medium mb-2 ${isCompact ? 'text-xs' : 'text-sm'}`} style={{ color: 'var(--text-secondary)' }}>
         {label}
       </p>
-      <div className="flex items-baseline">
-        <p className={`${isCompact ? 'text-2xl' : 'text-3xl'} font-bold`} style={{ color: 'var(--text-primary)' }}>
-          {value}
-        </p>
-        {unit && (
-          <span className={`${isCompact ? 'text-base' : 'text-lg'} ml-2`} style={{ color: 'var(--text-secondary)' }}>
-            {unit}
-          </span>
-        )}
-      </div>
+      {hasDetails ? (
+        <div className="space-y-3">
+          {details.map((detail) => (
+            <div
+              key={detail.label}
+              className="flex items-baseline justify-between gap-4 border-b pb-3 last:border-b-0 last:pb-0"
+              style={{ borderColor: 'var(--border-soft)' }}
+            >
+              <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
+                {detail.label}
+              </p>
+              <p className={`text-lg font-semibold ${getStateClass(detail.state)}`}>
+                {detail.value}
+              </p>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="flex items-baseline">
+          <p className={`${isCompact ? 'text-2xl' : 'text-3xl'} font-bold`} style={{ color: 'var(--text-primary)' }}>
+            {value}
+          </p>
+          {unit && (
+            <span className={`${isCompact ? 'text-base' : 'text-lg'} ml-2`} style={{ color: 'var(--text-secondary)' }}>
+              {unit}
+            </span>
+          )}
+        </div>
+      )}
       {secondary && <p className={`text-xs mt-2 ${stateClass}`}>{secondary}</p>}
       {change !== null && (
         <p className={`text-sm mt-2 ${changeClass}`}>

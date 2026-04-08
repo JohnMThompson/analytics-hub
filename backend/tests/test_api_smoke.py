@@ -94,7 +94,12 @@ async def test_mortgage_weekly_rates_endpoint_smoke(monkeypatch):
         pytest.skip("Mortgage dashboard is not registered")
 
     async def fake_weekly_rates(_engine, days=365):
-        return [{"week_start": "2026-01-05", "effective_rate_30yr": 6.4, "effective_rate_7arm": 6.1}]
+        return [{
+            "week_start": "2026-01-05",
+            "effective_rate_30yr": 6.4,
+            "effective_rate_71arm": 6.1,
+            "effective_rate_76arm": 5.9,
+        }]
 
     dashboard_module = __import__(
         dashboard.__class__.__module__,
