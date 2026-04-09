@@ -671,8 +671,8 @@ export default function SwimTracking() {
                       const percent = getStrokePercent(item?.payload?.yards || 0);
                       return [`${formatSwimDistance(value, unitSystem)} ${distanceLabels.summaryDistance} (${percent})`, name];
                     }}
-                    label={renderStrokeDonutLabel}
-                    labelLine
+                    label={isMobile ? false : renderStrokeDonutLabel}
+                    labelLine={!isMobile}
                   />
                 </div>
               </DashboardSection>
