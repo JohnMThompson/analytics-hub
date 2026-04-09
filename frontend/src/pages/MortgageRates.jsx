@@ -278,15 +278,18 @@ export default function MortgageRates() {
             <KpiGrid columns={3}>
               <MetricCard
                 label="Current Rate"
+                labelClassName="font-semibold"
                 details={rateComparisonCurrentDetails}
                 variant="emphasis"
               />
               <MetricCard
                 label="30 Days Ago"
+                labelClassName="font-semibold"
                 details={rateComparisonPreviousDetails}
               />
               <MetricCard
                 label="30-Day Change"
+                labelClassName="font-semibold"
                 details={rateComparisonDeltaDetails}
               />
             </KpiGrid>
