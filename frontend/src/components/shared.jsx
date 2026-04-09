@@ -89,6 +89,7 @@ export function DataTablePanel({ children, className = '' }) {
  */
 export function MetricCard({
   label,
+  labelClassName = '',
   value,
   unit = '',
   change = null,
@@ -121,7 +122,7 @@ export function MetricCard({
 
   return (
     <Card className={containerClass} style={containerStyle}>
-      <p className={`font-medium mb-2 ${isCompact ? 'text-xs' : 'text-sm'}`} style={{ color: 'var(--text-secondary)' }}>
+      <p className={`font-medium mb-2 ${isCompact ? 'text-xs' : 'text-sm'} ${labelClassName}`.trim()} style={{ color: 'var(--text-secondary)' }}>
         {label}
       </p>
       {hasDetails ? (

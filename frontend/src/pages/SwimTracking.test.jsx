@@ -4,10 +4,16 @@ import {
   WORKOUTS_PAGE_SIZE,
   SwimMobileWorkoutCard,
   buildRecentWorkoutColumns,
+  convertMilesToKilometers,
+  convertYardsToMeters,
   formatSwimChartDateTick,
   formatSwimDateTime,
+  formatSwimDistance,
+  formatSwimLongDistance,
   formatSwimTime,
+  getSwimDistanceUnitLabels,
   paginateRecords,
+  SWIM_UNIT_SYSTEMS,
 } from './SwimTracking';
 
 describe('formatSwimTime', () => {
@@ -46,6 +52,34 @@ describe('buildRecentWorkoutColumns', () => {
       'total_distance_yards',
       'comments',
     ]);
+  });
+
+  test('switches the distance column header for metric units', () => {
+    const columns = buildRecentWorkoutColumns(SWIM_UNIT_SYSTEMS.METRIC);
+
+    expect(columns[3].header).toBe('Distance (meters)');
+  });
+});
+
+describe('unit conversion helpers', () => {
+  test('converts yards to meters', () => {
+    expect(convertYardsToMeters(100)).toBe(91.44);
+  });
+
+  test('converts miles to kilometers', () => {
+    expect(convertMilesToKilometers(1)).toBe(1.609344);
+  });
+
+  test('returns the expected labels for imperial and metric units', () => {
+    expect(getSwimDistanceUnitLabels(SWIM_UNIT_SYSTEMS.IMPERIAL).summaryDistance).toBe('yards');
+    expect(getSwimDistanceUnitLabels(SWIM_UNIT_SYSTEMS.METRIC).summaryDistance).toBe('meters');
+  });
+
+  test('formats swim distances in imperial and metric units', () => {
+    expect(formatSwimDistance(1000, SWIM_UNIT_SYSTEMS.IMPERIAL)).toBe('1,000');
+    expect(formatSwimDistance(1000, SWIM_UNIT_SYSTEMS.METRIC)).toBe('914');
+    expect(formatSwimLongDistance(1, SWIM_UNIT_SYSTEMS.IMPERIAL)).toBe('1');
+    expect(formatSwimLongDistance(1, SWIM_UNIT_SYSTEMS.METRIC)).toBe('1.61');
   });
 });
 
@@ -104,6 +138,21 @@ describe('SwimMobileWorkoutCard', () => {
     expect(html).toContain('Main set felt strong.');
     expect(html).toContain('Location');
     expect(html).toContain('Downtown YMCA');
+  });
+
+  test('renders metric distance when requested', () => {
+    const row = {
+      id: 6,
+      start_date_time: '2026-03-28T10:30:00',
+      duration: 60,
+      total_distance_yards: 1000,
+      location: 'Downtown YMCA',
+      comments: 'Technique day.',
+    };
+
+    const html = renderToStaticMarkup(<SwimMobileWorkoutCard row={row} unitSystem={SWIM_UNIT_SYSTEMS.METRIC} />);
+
+    expect(html).toContain('914 m');
   });
 
   test('renders a placeholder when location and comments are absent', () => {

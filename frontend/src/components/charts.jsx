@@ -95,6 +95,7 @@ export function ColumnChartPanel({
   emptyMessage = 'No chart data available.',
   valueFormatter = (value) => value,
   labelFormatter = (label) => label,
+  showLegend = true,
 }) {
   if (!Array.isArray(data) || data.length === 0) {
     return <EmptyChartState emptyMessage={emptyMessage} />;
@@ -113,7 +114,7 @@ export function ColumnChartPanel({
           />
           <YAxis domain={yDomain} tick={{ fontSize: 12, fill: '#475569' }} tickFormatter={yTickFormatter} />
           <Tooltip contentStyle={tooltipStyle} formatter={valueFormatter} labelFormatter={labelFormatter} />
-          <Legend />
+          {showLegend && <Legend />}
           {bars.map((bar, idx) => (
             <Bar
               key={bar.dataKey}
@@ -197,6 +198,7 @@ export function PieChartPanel({
   height = 360,
   emptyMessage = 'No chart data available.',
   valueFormatter = (value) => value,
+  tooltipFormatter = null,
 }) {
   if (!Array.isArray(data) || data.length === 0) {
     return <EmptyChartState emptyMessage={emptyMessage} />;
@@ -206,11 +208,11 @@ export function PieChartPanel({
     <ChartPanel>
       <ResponsiveContainer width="100%" height={height}>
         <PieChart>
-          <Tooltip contentStyle={tooltipStyle} formatter={valueFormatter} />
+          <Tooltip contentStyle={tooltipStyle} formatter={tooltipFormatter || valueFormatter} />
           <Legend />
           <Pie data={data} dataKey={dataKey} nameKey={nameKey} outerRadius={110}>
             {data.map((entry, idx) => (
-              <Cell key={`${entry[nameKey]}-${idx}`} fill={getSeriesColor(null, idx)} />
+              <Cell key={`${entry[nameKey]}-${idx}`} fill={getSeriesColor(entry.color, idx)} />
             ))}
           </Pie>
         </PieChart>
@@ -226,6 +228,10 @@ export function DonutChartPanel({
   height = 360,
   emptyMessage = 'No chart data available.',
   valueFormatter = (value) => value,
+  tooltipFormatter = null,
+  label = false,
+  labelLine = true,
+  showLegend = true,
 }) {
   if (!Array.isArray(data) || data.length === 0) {
     return <EmptyChartState emptyMessage={emptyMessage} />;
@@ -235,11 +241,19 @@ export function DonutChartPanel({
     <ChartPanel>
       <ResponsiveContainer width="100%" height={height}>
         <PieChart>
-          <Tooltip contentStyle={tooltipStyle} formatter={valueFormatter} />
-          <Legend />
-          <Pie data={data} dataKey={dataKey} nameKey={nameKey} innerRadius={60} outerRadius={110}>
+          <Tooltip contentStyle={tooltipStyle} formatter={tooltipFormatter || valueFormatter} />
+          {showLegend && <Legend />}
+          <Pie
+            data={data}
+            dataKey={dataKey}
+            nameKey={nameKey}
+            innerRadius={60}
+            outerRadius={110}
+            label={label}
+            labelLine={labelLine}
+          >
             {data.map((entry, idx) => (
-              <Cell key={`${entry[nameKey]}-${idx}`} fill={getSeriesColor(null, idx)} />
+              <Cell key={`${entry[nameKey]}-${idx}`} fill={getSeriesColor(entry.color, idx)} />
             ))}
           </Pie>
         </PieChart>

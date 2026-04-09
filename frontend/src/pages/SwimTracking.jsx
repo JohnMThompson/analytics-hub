@@ -15,13 +15,26 @@ import {
   DataTablePanel,
 } from '../components/shared';
 import {
-  BarChartPanel,
   ColumnChartPanel,
+  DonutChartPanel,
 } from '../components/charts';
 import DataTable, { TableExportButton } from '../components/table';
 import { formatDecimal, formatDurationHours, formatInteger } from '../utils/formatters';
 
 export const WORKOUTS_PAGE_SIZE = 50;
+export const SWIM_STROKE_COLORS = {
+  Freestyle: 'var(--chart-1)',
+  Backstroke: 'var(--chart-2)',
+  Breaststroke: 'var(--chart-3)',
+  Butterfly: 'var(--chart-4)',
+};
+export const SWIM_UNIT_SYSTEMS = {
+  IMPERIAL: 'imperial',
+  METRIC: 'metric',
+};
+
+const YARDS_TO_METERS = 0.9144;
+const MILES_TO_KILOMETERS = 1.609344;
 
 const DATE_RANGE_OPTIONS = [
   { value: 'all', label: 'All Time' },
@@ -62,7 +75,74 @@ export function formatSwimChartDateTick(dateStr, abbreviated = false) {
     : { month: 'short', day: 'numeric', year: '2-digit' });
 }
 
-export function SwimMobileWorkoutCard({ row }) {
+export function convertYardsToMeters(yards) {
+  if (yards === null || yards === undefined || Number.isNaN(Number(yards))) return 0;
+  return Number(yards) * YARDS_TO_METERS;
+}
+
+export function convertMilesToKilometers(miles) {
+  if (miles === null || miles === undefined || Number.isNaN(Number(miles))) return 0;
+  return Number(miles) * MILES_TO_KILOMETERS;
+}
+
+export function getSwimDistanceUnitLabels(unitSystem = SWIM_UNIT_SYSTEMS.IMPERIAL) {
+  return unitSystem === SWIM_UNIT_SYSTEMS.METRIC
+    ? {
+      shortDistance: 'm',
+      longDistance: 'kilometers',
+      mediumDistance: 'meters',
+      chartDistance: 'Distance (meters)',
+      summaryDistance: 'meters',
+    }
+    : {
+      shortDistance: 'yds',
+      longDistance: 'miles',
+      mediumDistance: 'yards',
+      chartDistance: 'Distance (yards)',
+      summaryDistance: 'yards',
+    };
+}
+
+export function formatSwimDistance(value, unitSystem = SWIM_UNIT_SYSTEMS.IMPERIAL, maximumFractionDigits = 0) {
+  const converted = unitSystem === SWIM_UNIT_SYSTEMS.METRIC ? convertYardsToMeters(value) : Number(value ?? 0);
+  return maximumFractionDigits > 0
+    ? formatDecimal(converted, maximumFractionDigits)
+    : formatInteger(converted);
+}
+
+export function formatSwimLongDistance(value, unitSystem = SWIM_UNIT_SYSTEMS.IMPERIAL, maximumFractionDigits = 2) {
+  const converted = unitSystem === SWIM_UNIT_SYSTEMS.METRIC ? convertMilesToKilometers(value) : Number(value ?? 0);
+  return formatDecimal(converted, maximumFractionDigits);
+}
+
+export function renderStrokeDonutLabel({ cx, cy, midAngle, innerRadius, outerRadius, percent, name }) {
+  if (!percent || percent < 0.05) {
+    return null;
+  }
+
+  const radius = outerRadius + 26;
+  const x = cx + radius * Math.cos((-midAngle * Math.PI) / 180);
+  const y = cy + radius * Math.sin((-midAngle * Math.PI) / 180);
+  const roundedPercent = `${Math.round(percent * 100)}%`;
+
+  return (
+    <text
+      x={x}
+      y={y}
+      fill="#0f172a"
+      textAnchor={x > cx ? 'start' : 'end'}
+      dominantBaseline="central"
+      style={{ fontSize: 12, fontWeight: 600 }}
+    >
+      <tspan x={x} dy="-0.35em">{name}</tspan>
+      <tspan x={x} dy="1.2em">{roundedPercent}</tspan>
+    </text>
+  );
+}
+
+export function SwimMobileWorkoutCard({ row, unitSystem = SWIM_UNIT_SYSTEMS.IMPERIAL }) {
+  const distanceLabels = getSwimDistanceUnitLabels(unitSystem);
+
   return (
     <article
       className="rounded-2xl border p-4 shadow-sm"
@@ -95,7 +175,7 @@ export function SwimMobileWorkoutCard({ row }) {
             Distance
           </p>
           <p className="mt-1 text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
-            {formatInteger(row?.total_distance_yards || 0)} yds
+            {formatSwimDistance(row?.total_distance_yards || 0, unitSystem)} {distanceLabels.shortDistance}
           </p>
         </div>
         <div className="rounded-xl border px-3 py-2" style={{ backgroundColor: '#f8fbff', borderColor: 'var(--border-soft)' }}>
@@ -119,7 +199,9 @@ export function SwimMobileWorkoutCard({ row }) {
   );
 }
 
-export function buildRecentWorkoutColumns() {
+export function buildRecentWorkoutColumns(unitSystem = SWIM_UNIT_SYSTEMS.IMPERIAL) {
+  const distanceLabels = getSwimDistanceUnitLabels(unitSystem);
+
   return [
     {
       key: 'start_date_time',
@@ -142,10 +224,11 @@ export function buildRecentWorkoutColumns() {
     },
     {
       key: 'total_distance_yards',
-      header: 'Distance (yards)',
+      header: distanceLabels.chartDistance,
       tone: 'primary',
       align: 'right',
-      render: (row) => formatInteger(row.total_distance_yards),
+      render: (row) => formatSwimDistance(row.total_distance_yards, unitSystem),
+      exportValue: (row) => formatSwimDistance(row.total_distance_yards, unitSystem),
     },
     {
       key: 'comments',
@@ -173,6 +256,7 @@ export function paginateRecords(records = [], page = 1, pageSize = WORKOUTS_PAGE
 export default function SwimTracking() {
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedDays, setSelectedDays] = useState('365');
+  const [unitSystem, setUnitSystem] = useState(SWIM_UNIT_SYSTEMS.IMPERIAL);
   const [summary, setSummary] = useState(null);
   const [dailyData, setDailyData] = useState([]);
   const [records, setRecords] = useState([]);
@@ -236,16 +320,17 @@ export default function SwimTracking() {
 
   const strokeDistribution = strokes
     ? [
-      { stroke: 'Freestyle', yards: strokes.freestyle || 0 },
-      { stroke: 'Backstroke', yards: strokes.backstroke || 0 },
-      { stroke: 'Breaststroke', yards: strokes.breaststroke || 0 },
-      { stroke: 'Butterfly', yards: strokes.butterfly || 0 },
+      { stroke: 'Freestyle', yards: strokes.freestyle || 0, color: SWIM_STROKE_COLORS.Freestyle },
+      { stroke: 'Backstroke', yards: strokes.backstroke || 0, color: SWIM_STROKE_COLORS.Backstroke },
+      { stroke: 'Breaststroke', yards: strokes.breaststroke || 0, color: SWIM_STROKE_COLORS.Breaststroke },
+      { stroke: 'Butterfly', yards: strokes.butterfly || 0, color: SWIM_STROKE_COLORS.Butterfly },
     ].sort((a, b) => b.yards - a.yards)
     : [];
+  const strokeChartData = strokeDistribution.filter((stroke) => stroke.yards > 0);
   const totalStrokeYards = strokeDistribution.reduce((sum, stroke) => sum + stroke.yards, 0);
   const getStrokePercent = (yards) => {
-    if (!totalStrokeYards) return '0.0%';
-    return `${((yards / totalStrokeYards) * 100).toFixed(1)}%`;
+    if (!totalStrokeYards) return '0%';
+    return `${Math.round((yards / totalStrokeYards) * 100)}%`;
   };
   const filledDailyData = (() => {
     if (!Array.isArray(dailyData) || dailyData.length === 0) return [];
@@ -276,7 +361,8 @@ export default function SwimTracking() {
   })();
   const timeframeLabel = DATE_RANGE_OPTIONS.find((option) => String(option.value) === String(selectedDays))?.label || `Last ${selectedDays} days`;
 
-  const recentWorkoutColumns = buildRecentWorkoutColumns();
+  const distanceLabels = getSwimDistanceUnitLabels(unitSystem);
+  const recentWorkoutColumns = buildRecentWorkoutColumns(unitSystem);
   const { currentPage, totalPages, pageRows } = paginateRecords(records, recordsPage, WORKOUTS_PAGE_SIZE);
   const averageYardsPerWorkout = summary?.workout_count ? Math.round((summary.total_yards || 0) / summary.workout_count) : 0;
   const averageMinutesPerWorkout = summary?.workout_count ? Math.round(((summary.total_hours || 0) * 60) / summary.workout_count) : 0;
@@ -308,6 +394,32 @@ export default function SwimTracking() {
                 </option>
               ))}
             </select>
+            <div className="ml-auto flex items-center gap-2">
+              <div className="inline-flex rounded-full border p-1" style={{ borderColor: 'var(--border-soft)', backgroundColor: '#fff' }}>
+                <button
+                  type="button"
+                  className="focus-ring rounded-full px-3 py-1.5 text-sm font-semibold transition-colors"
+                  style={{
+                    backgroundColor: unitSystem === SWIM_UNIT_SYSTEMS.IMPERIAL ? 'var(--accent-100)' : 'transparent',
+                    color: unitSystem === SWIM_UNIT_SYSTEMS.IMPERIAL ? 'var(--accent-700)' : 'var(--text-secondary)',
+                  }}
+                  onClick={() => setUnitSystem(SWIM_UNIT_SYSTEMS.IMPERIAL)}
+                >
+                  Imperial
+                </button>
+                <button
+                  type="button"
+                  className="focus-ring rounded-full px-3 py-1.5 text-sm font-semibold transition-colors"
+                  style={{
+                    backgroundColor: unitSystem === SWIM_UNIT_SYSTEMS.METRIC ? 'var(--accent-100)' : 'transparent',
+                    color: unitSystem === SWIM_UNIT_SYSTEMS.METRIC ? 'var(--accent-700)' : 'var(--text-secondary)',
+                  }}
+                  onClick={() => setUnitSystem(SWIM_UNIT_SYSTEMS.METRIC)}
+                >
+                  Metric
+                </button>
+              </div>
+            </div>
           </div>
         </Card>
       )}
@@ -376,11 +488,11 @@ export default function SwimTracking() {
                       </div>
                       <div className="flex-1 flex flex-col items-center justify-center px-6 py-5">
                         <p className="text-5xl font-bold leading-none" style={{ color: 'var(--text-primary)' }}>
-                          {formatDecimal(summary.total_miles, 2)}
+                          {formatSwimLongDistance(summary.total_miles, unitSystem, 2)}
                         </p>
-                        <p className="mt-2 text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>miles</p>
+                        <p className="mt-2 text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>{distanceLabels.longDistance}</p>
                         <p className="mt-5 text-xs" style={{ color: 'var(--text-muted)' }}>
-                          Avg per workout: {formatInteger(averageYardsPerWorkout)} yds
+                          Avg per workout: {formatSwimDistance(averageYardsPerWorkout, unitSystem)} {distanceLabels.shortDistance}
                         </p>
                       </div>
                     </div>
@@ -404,13 +516,15 @@ export default function SwimTracking() {
                   <Card className="kpi-focus-card swim-kpi p-0">
                     <div className="min-h-[220px] flex flex-col text-center">
                       <div className="px-5 pt-4 pb-3 border-b" style={{ borderColor: 'var(--border-soft)' }}>
-                        <p className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>Total Yards</p>
+                        <p className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
+                          {unitSystem === SWIM_UNIT_SYSTEMS.METRIC ? 'Total Meters' : 'Total Yards'}
+                        </p>
                       </div>
                       <div className="flex-1 flex flex-col items-center justify-center px-6 py-5">
                         <p className="text-5xl font-bold leading-none" style={{ color: 'var(--text-primary)' }}>
-                          {formatInteger(summary.total_yards)}
+                          {formatSwimDistance(summary.total_yards, unitSystem)}
                         </p>
-                        <p className="mt-2 text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>yards</p>
+                        <p className="mt-2 text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>{distanceLabels.summaryDistance}</p>
                         <p className="mt-5 text-xs" style={{ color: 'var(--text-muted)' }}>{timeframeLabel}</p>
                       </div>
                     </div>
@@ -423,17 +537,19 @@ export default function SwimTracking() {
             {filledDailyData.length > 0 && (
               <DashboardSection
                 title="Distance Trend"
-                subtitle={`${timeframeLabel} daily distance (yards).`}
+                subtitle={`${timeframeLabel} daily distance (${distanceLabels.mediumDistance}).`}
               >
                 <ColumnChartPanel
                   data={filledDailyData}
                   xKey="date"
-                  bars={[{ dataKey: 'total_yards', name: 'Distance (yards)', color: 'var(--chart-4)' }]}
+                  bars={[{ dataKey: 'total_yards', name: distanceLabels.chartDistance, color: 'var(--chart-4)' }]}
                   height={400}
+                  showLegend={false}
                   xAxisInterval={dailyAxisInterval}
                   xTickFormatter={(value) => formatSwimChartDateTick(value, isMobile)}
                   yDomain={[0, 'auto']}
-                  valueFormatter={(value) => `${formatInteger(value)} yards`}
+                  yTickFormatter={(value) => formatSwimDistance(value, unitSystem)}
+                  valueFormatter={(value) => `${formatSwimDistance(value, unitSystem)} ${distanceLabels.mediumDistance}`}
                   labelFormatter={(date) => `Date: ${formatSwimChartDateTick(date, false)}`}
                 />
               </DashboardSection>
@@ -458,7 +574,7 @@ export default function SwimTracking() {
               >
                 <div className="grid gap-3 sm:hidden">
                   {pageRows.map((row) => (
-                    <SwimMobileWorkoutCard key={row.id} row={row} />
+                    <SwimMobileWorkoutCard key={row.id} row={row} unitSystem={unitSystem} />
                   ))}
                 </div>
                 <div className="hidden sm:block">
@@ -518,45 +634,45 @@ export default function SwimTracking() {
                 subtitle={`${timeframeLabel} total distance by stroke type.`}
               >
                 <KpiGrid columns={4}>
-                  <Card className="kpi-focus-card swim-kpi p-6 text-center">
+                  <Card className="kpi-focus-card swim-kpi p-6 text-center" style={{ borderTop: `4px solid ${SWIM_STROKE_COLORS.Freestyle}` }}>
                     <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>Freestyle</p>
-                    <p className="text-4xl font-bold" style={{ color: 'var(--text-primary)' }}>{formatInteger(strokes.freestyle)}</p>
-                    <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>yards</p>
+                    <p className="text-4xl font-bold" style={{ color: 'var(--text-primary)' }}>{formatSwimDistance(strokes.freestyle, unitSystem)}</p>
+                    <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{distanceLabels.summaryDistance}</p>
                     <p className="text-xs mt-2 font-semibold" style={{ color: 'var(--text-secondary)' }}>{getStrokePercent(strokes.freestyle || 0)} of total</p>
                   </Card>
-                  <Card className="kpi-focus-card swim-kpi p-6 text-center">
+                  <Card className="kpi-focus-card swim-kpi p-6 text-center" style={{ borderTop: `4px solid ${SWIM_STROKE_COLORS.Backstroke}` }}>
                     <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>Backstroke</p>
-                    <p className="text-4xl font-bold" style={{ color: 'var(--text-primary)' }}>{formatInteger(strokes.backstroke)}</p>
-                    <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>yards</p>
+                    <p className="text-4xl font-bold" style={{ color: 'var(--text-primary)' }}>{formatSwimDistance(strokes.backstroke, unitSystem)}</p>
+                    <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{distanceLabels.summaryDistance}</p>
                     <p className="text-xs mt-2 font-semibold" style={{ color: 'var(--text-secondary)' }}>{getStrokePercent(strokes.backstroke || 0)} of total</p>
                   </Card>
-                  <Card className="kpi-focus-card swim-kpi p-6 text-center">
+                  <Card className="kpi-focus-card swim-kpi p-6 text-center" style={{ borderTop: `4px solid ${SWIM_STROKE_COLORS.Breaststroke}` }}>
                     <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>Breaststroke</p>
-                    <p className="text-4xl font-bold" style={{ color: 'var(--text-primary)' }}>{formatInteger(strokes.breaststroke)}</p>
-                    <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>yards</p>
+                    <p className="text-4xl font-bold" style={{ color: 'var(--text-primary)' }}>{formatSwimDistance(strokes.breaststroke, unitSystem)}</p>
+                    <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{distanceLabels.summaryDistance}</p>
                     <p className="text-xs mt-2 font-semibold" style={{ color: 'var(--text-secondary)' }}>{getStrokePercent(strokes.breaststroke || 0)} of total</p>
                   </Card>
-                  <Card className="kpi-focus-card swim-kpi p-6 text-center">
+                  <Card className="kpi-focus-card swim-kpi p-6 text-center" style={{ borderTop: `4px solid ${SWIM_STROKE_COLORS.Butterfly}` }}>
                     <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>Butterfly</p>
-                    <p className="text-4xl font-bold" style={{ color: 'var(--text-primary)' }}>{formatInteger(strokes.butterfly)}</p>
-                    <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>yards</p>
+                    <p className="text-4xl font-bold" style={{ color: 'var(--text-primary)' }}>{formatSwimDistance(strokes.butterfly, unitSystem)}</p>
+                    <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{distanceLabels.summaryDistance}</p>
                     <p className="text-xs mt-2 font-semibold" style={{ color: 'var(--text-secondary)' }}>{getStrokePercent(strokes.butterfly || 0)} of total</p>
                   </Card>
                 </KpiGrid>
                 <div className="mt-6">
-                  <BarChartPanel
-                    data={strokeDistribution}
-                    yKey="stroke"
-                    barKey="yards"
-                    barName="Distance (yards)"
-                    yAxisWidth={120}
+                  <DonutChartPanel
+                    data={strokeChartData}
+                    nameKey="stroke"
+                    dataKey="yards"
                     height={420}
-                    hideXAxis
-                    showBarValueLabels
                     showLegend={false}
-                    chartRightMargin={140}
-                    valueFormatter={(value) => `${formatInteger(value)} yards`}
-                    labelFormatter={(stroke) => `Stroke: ${stroke}`}
+                    valueFormatter={(value) => `${formatSwimDistance(value, unitSystem)} ${distanceLabels.summaryDistance}`}
+                    tooltipFormatter={(value, name, item) => {
+                      const percent = getStrokePercent(item?.payload?.yards || 0);
+                      return [`${formatSwimDistance(value, unitSystem)} ${distanceLabels.summaryDistance} (${percent})`, name];
+                    }}
+                    label={renderStrokeDonutLabel}
+                    labelLine
                   />
                 </div>
               </DashboardSection>
