@@ -232,32 +232,42 @@ export function DonutChartPanel({
   label = false,
   labelLine = true,
   showLegend = true,
+  wrapInPanel = true,
+  panelClassName = '',
 }) {
   if (!Array.isArray(data) || data.length === 0) {
     return <EmptyChartState emptyMessage={emptyMessage} />;
   }
 
+  const chartContent = (
+    <ResponsiveContainer width="100%" height={height}>
+      <PieChart>
+        <Tooltip contentStyle={tooltipStyle} formatter={tooltipFormatter || valueFormatter} />
+        {showLegend && <Legend />}
+        <Pie
+          data={data}
+          dataKey={dataKey}
+          nameKey={nameKey}
+          innerRadius={60}
+          outerRadius={110}
+          label={label}
+          labelLine={labelLine}
+        >
+          {data.map((entry, idx) => (
+            <Cell key={`${entry[nameKey]}-${idx}`} fill={getSeriesColor(entry.color, idx)} />
+          ))}
+        </Pie>
+      </PieChart>
+    </ResponsiveContainer>
+  );
+
+  if (!wrapInPanel) {
+    return chartContent;
+  }
+
   return (
-    <ChartPanel>
-      <ResponsiveContainer width="100%" height={height}>
-        <PieChart>
-          <Tooltip contentStyle={tooltipStyle} formatter={tooltipFormatter || valueFormatter} />
-          {showLegend && <Legend />}
-          <Pie
-            data={data}
-            dataKey={dataKey}
-            nameKey={nameKey}
-            innerRadius={60}
-            outerRadius={110}
-            label={label}
-            labelLine={labelLine}
-          >
-            {data.map((entry, idx) => (
-              <Cell key={`${entry[nameKey]}-${idx}`} fill={getSeriesColor(entry.color, idx)} />
-            ))}
-          </Pie>
-        </PieChart>
-      </ResponsiveContainer>
+    <ChartPanel className={panelClassName}>
+      {chartContent}
     </ChartPanel>
   );
 }

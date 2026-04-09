@@ -115,7 +115,7 @@ export function formatSwimLongDistance(value, unitSystem = SWIM_UNIT_SYSTEMS.IMP
   return formatDecimal(converted, maximumFractionDigits);
 }
 
-export function renderStrokeDonutLabel({ cx, cy, midAngle, innerRadius, outerRadius, percent, name }) {
+export function renderStrokeDonutLabel({ cx, cy, midAngle, outerRadius, percent, name, payload }) {
   if (!percent || percent < 0.05) {
     return null;
   }
@@ -124,19 +124,49 @@ export function renderStrokeDonutLabel({ cx, cy, midAngle, innerRadius, outerRad
   const x = cx + radius * Math.cos((-midAngle * Math.PI) / 180);
   const y = cy + radius * Math.sin((-midAngle * Math.PI) / 180);
   const roundedPercent = `${Math.round(percent * 100)}%`;
+  const labelText = `${name} ${roundedPercent}`;
+  const badgeWidth = Math.max(92, labelText.length * 7.2 + 30);
+  const badgeHeight = 28;
+  const badgeX = x > cx ? x + 8 : x - badgeWidth - 8;
+  const badgeY = y - badgeHeight / 2;
+  const textX = badgeX + 24;
+  const dotX = badgeX + 12;
+  const lineStartRadius = outerRadius + 2;
+  const lineStartX = cx + lineStartRadius * Math.cos((-midAngle * Math.PI) / 180);
+  const lineStartY = cy + lineStartRadius * Math.sin((-midAngle * Math.PI) / 180);
+  const lineEndX = x > cx ? badgeX : badgeX + badgeWidth;
+  const lineEndY = y;
 
   return (
-    <text
-      x={x}
-      y={y}
-      fill="#0f172a"
-      textAnchor={x > cx ? 'start' : 'end'}
-      dominantBaseline="central"
-      style={{ fontSize: 12, fontWeight: 600 }}
-    >
-      <tspan x={x} dy="-0.35em">{name}</tspan>
-      <tspan x={x} dy="1.2em">{roundedPercent}</tspan>
-    </text>
+    <g>
+      <path
+        d={`M ${lineStartX} ${lineStartY} L ${x} ${y} L ${lineEndX} ${lineEndY}`}
+        fill="none"
+        stroke={payload?.color || 'var(--chart-1)'}
+        strokeWidth={1.5}
+        strokeLinecap="round"
+      />
+      <rect
+        x={badgeX}
+        y={badgeY}
+        width={badgeWidth}
+        height={badgeHeight}
+        rx={10}
+        fill="#f8fbff"
+        stroke="#dbe5f0"
+      />
+      <circle cx={dotX} cy={y} r={4} fill={payload?.color || 'var(--chart-1)'} />
+      <text
+        x={textX}
+        y={y}
+        fill="#0f172a"
+        textAnchor="start"
+        dominantBaseline="central"
+        style={{ fontSize: 12, fontWeight: 600 }}
+      >
+        {labelText}
+      </text>
+    </g>
   );
 }
 
@@ -660,20 +690,63 @@ export default function SwimTracking() {
                   </Card>
                 </KpiGrid>
                 <div className="mt-6">
-                  <DonutChartPanel
-                    data={strokeChartData}
-                    nameKey="stroke"
-                    dataKey="yards"
-                    height={420}
-                    showLegend={false}
-                    valueFormatter={(value) => `${formatSwimDistance(value, unitSystem)} ${distanceLabels.summaryDistance}`}
-                    tooltipFormatter={(value, name, item) => {
-                      const percent = getStrokePercent(item?.payload?.yards || 0);
-                      return [`${formatSwimDistance(value, unitSystem)} ${distanceLabels.summaryDistance} (${percent})`, name];
-                    }}
-                    label={isMobile ? false : renderStrokeDonutLabel}
-                    labelLine={!isMobile}
-                  />
+                  {isMobile ? (
+                    <Card className="p-6">
+                      <div className="mb-5 grid grid-cols-1 gap-3">
+                        {strokeChartData.map((stroke) => (
+                          <div
+                            key={stroke.stroke}
+                            className="flex items-center justify-between rounded-xl border px-4 py-3"
+                            style={{ borderColor: 'var(--border-soft)', backgroundColor: '#f8fbff' }}
+                          >
+                            <div className="flex items-center gap-3">
+                              <span
+                                className="h-3 w-3 rounded-full"
+                                style={{ backgroundColor: stroke.color }}
+                                aria-hidden="true"
+                              />
+                              <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                                {stroke.stroke}
+                              </p>
+                            </div>
+                            <p className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>
+                              {getStrokePercent(stroke.yards)}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                      <DonutChartPanel
+                        data={strokeChartData}
+                        nameKey="stroke"
+                        dataKey="yards"
+                        height={320}
+                        showLegend={false}
+                        wrapInPanel={false}
+                        valueFormatter={(value) => `${formatSwimDistance(value, unitSystem)} ${distanceLabels.summaryDistance}`}
+                        tooltipFormatter={(value, name, item) => {
+                          const percent = getStrokePercent(item?.payload?.yards || 0);
+                          return [`${formatSwimDistance(value, unitSystem)} ${distanceLabels.summaryDistance} (${percent})`, name];
+                        }}
+                        label={false}
+                        labelLine={false}
+                      />
+                    </Card>
+                  ) : (
+                    <DonutChartPanel
+                      data={strokeChartData}
+                      nameKey="stroke"
+                      dataKey="yards"
+                      height={420}
+                      showLegend={false}
+                      valueFormatter={(value) => `${formatSwimDistance(value, unitSystem)} ${distanceLabels.summaryDistance}`}
+                      tooltipFormatter={(value, name, item) => {
+                        const percent = getStrokePercent(item?.payload?.yards || 0);
+                        return [`${formatSwimDistance(value, unitSystem)} ${distanceLabels.summaryDistance} (${percent})`, name];
+                      }}
+                      label={renderStrokeDonutLabel}
+                      labelLine={false}
+                    />
+                  )}
                 </div>
               </DashboardSection>
             )}
