@@ -1,7 +1,9 @@
 import { describe, expect, test } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import {
+  buildSwimDurationByDate,
   WORKOUTS_PAGE_SIZE,
+  SwimDistanceTrendTooltipCard,
   SwimMobileWorkoutCard,
   buildRecentWorkoutColumns,
   convertMilesToKilometers,
@@ -13,6 +15,8 @@ import {
   formatSwimTime,
   getSwimDistanceUnitLabels,
   paginateRecords,
+  shouldShowSwimDistanceTrendTooltip,
+  shouldUseSwimDistanceTrendCardTooltip,
   SWIM_UNIT_SYSTEMS,
 } from './SwimTracking';
 
@@ -116,6 +120,68 @@ describe('paginateRecords', () => {
     expect(result.currentPage).toBe(1);
     expect(result.totalPages).toBe(1);
     expect(result.pageRows).toHaveLength(10);
+  });
+});
+
+describe('buildSwimDurationByDate', () => {
+  test('aggregates workout durations by workout date', () => {
+    const totals = buildSwimDurationByDate([
+      { start_date_time: '2026-03-28T06:00:00', duration: 45 },
+      { start_date_time: '2026-03-28T18:00:00', duration: 30 },
+      { start_date_time: '2026-03-29T09:15:00', duration: 60 },
+    ]);
+
+    expect(totals.get('2026-03-28')).toBe(75);
+    expect(totals.get('2026-03-29')).toBe(60);
+  });
+});
+
+describe('shouldShowSwimDistanceTrendTooltip', () => {
+  test('shows the tooltip for days with workouts even when distance is zero', () => {
+    expect(shouldShowSwimDistanceTrendTooltip({ workout_count: 1, total_yards: 0 })).toBe(true);
+  });
+
+  test('hides the tooltip for placeholder days without workouts', () => {
+    expect(shouldShowSwimDistanceTrendTooltip({ workout_count: 0, total_yards: 0 })).toBe(false);
+  });
+});
+
+describe('shouldUseSwimDistanceTrendCardTooltip', () => {
+  test('enables the card tooltip on desktop', () => {
+    expect(shouldUseSwimDistanceTrendCardTooltip(false)).toBe(true);
+  });
+
+  test('keeps the simple tooltip on mobile', () => {
+    expect(shouldUseSwimDistanceTrendCardTooltip(true)).toBe(false);
+  });
+});
+
+describe('SwimDistanceTrendTooltipCard', () => {
+  test('renders a desktop daily summary tooltip card in imperial units', () => {
+    const html = renderToStaticMarkup(
+      <SwimDistanceTrendTooltipCard
+        label="2026-03-28"
+        entry={{ workout_count: 2, total_yards: 2400, total_duration_minutes: 75 }}
+      />,
+    );
+
+    expect(html).toContain('Workout Day');
+    expect(html).toContain('2,400 yds');
+    expect(html).toContain('1h 15m');
+    expect(html).toContain('Mar');
+  });
+
+  test('renders a desktop daily summary tooltip card in metric units', () => {
+    const html = renderToStaticMarkup(
+      <SwimDistanceTrendTooltipCard
+        label="2026-03-28"
+        entry={{ workout_count: 1, total_yards: 1000, total_duration_minutes: 60 }}
+        unitSystem={SWIM_UNIT_SYSTEMS.METRIC}
+      />,
+    );
+
+    expect(html).toContain('914 m');
+    expect(html).toContain('1h 0m');
   });
 });
 

@@ -31,6 +31,97 @@ const tooltipStyle = {
   color: '#0f172a',
 };
 
+function formatTooltipValue(item, formatter) {
+  if (typeof formatter !== 'function') {
+    return { value: item?.value, name: item?.name };
+  }
+
+  const formatted = formatter(item?.value, item?.name, item, item?.payload);
+  if (Array.isArray(formatted)) {
+    return {
+      value: formatted[0],
+      name: formatted[1] ?? item?.name,
+    };
+  }
+
+  return { value: formatted, name: item?.name };
+}
+
+export function shouldRenderColumnTooltip(payload, tooltipVisibilityPredicate = null) {
+  if (!Array.isArray(payload) || payload.length === 0) {
+    return false;
+  }
+
+  if (typeof tooltipVisibilityPredicate !== 'function') {
+    return true;
+  }
+
+  return Boolean(tooltipVisibilityPredicate(payload[0]?.payload, payload));
+}
+
+function DefaultColumnChartTooltipContent({ items, label, labelFormatter, valueFormatter }) {
+  return (
+    <div style={tooltipStyle}>
+      <p className="m-0 px-3 pt-2 text-sm font-semibold" style={{ color: '#0f172a' }}>
+        {typeof labelFormatter === 'function' ? labelFormatter(label) : label}
+      </p>
+      <div className="px-3 pb-2 pt-1">
+        {items.map((item) => {
+          const formatted = formatTooltipValue(item, valueFormatter);
+
+          return (
+            <p key={`${item.dataKey}-${item.name}`} className="m-0 text-sm" style={{ color: item.color || '#0f172a' }}>
+              {formatted.name}: {formatted.value}
+            </p>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+export function renderColumnTooltipContent({
+  active,
+  payload,
+  label,
+  valueFormatter,
+  labelFormatter,
+  tooltipVisibilityPredicate,
+  customTooltipContent,
+}) {
+  if (!active || !shouldRenderColumnTooltip(payload, tooltipVisibilityPredicate)) {
+    return null;
+  }
+
+  const items = payload.filter((item) => item && item.value !== null && item.value !== undefined);
+  if (items.length === 0) {
+    return null;
+  }
+
+  if (typeof customTooltipContent === 'function') {
+    return customTooltipContent({
+      items,
+      label,
+      valueFormatter,
+      labelFormatter,
+      payload,
+    });
+  }
+
+  return (
+    <DefaultColumnChartTooltipContent
+      items={items}
+      label={label}
+      labelFormatter={labelFormatter}
+      valueFormatter={valueFormatter}
+    />
+  );
+}
+
+function ColumnChartTooltipContent(props) {
+  return renderColumnTooltipContent(props);
+}
+
 function EmptyChartState({ emptyMessage }) {
   return (
     <ChartPanel className="flex h-[360px] items-center justify-center">
@@ -96,6 +187,8 @@ export function ColumnChartPanel({
   valueFormatter = (value) => value,
   labelFormatter = (label) => label,
   showLegend = true,
+  tooltipVisibilityPredicate = null,
+  customTooltipContent = null,
 }) {
   if (!Array.isArray(data) || data.length === 0) {
     return <EmptyChartState emptyMessage={emptyMessage} />;
@@ -113,7 +206,16 @@ export function ColumnChartPanel({
             tickFormatter={xTickFormatter}
           />
           <YAxis domain={yDomain} tick={{ fontSize: 12, fill: '#475569' }} tickFormatter={yTickFormatter} />
-          <Tooltip contentStyle={tooltipStyle} formatter={valueFormatter} labelFormatter={labelFormatter} />
+          <Tooltip
+            content={(
+              <ColumnChartTooltipContent
+                valueFormatter={valueFormatter}
+                labelFormatter={labelFormatter}
+                tooltipVisibilityPredicate={tooltipVisibilityPredicate}
+                customTooltipContent={customTooltipContent}
+              />
+            )}
+          />
           {showLegend && <Legend />}
           {bars.map((bar, idx) => (
             <Bar

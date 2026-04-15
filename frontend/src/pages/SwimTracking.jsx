@@ -115,6 +115,67 @@ export function formatSwimLongDistance(value, unitSystem = SWIM_UNIT_SYSTEMS.IMP
   return formatDecimal(converted, maximumFractionDigits);
 }
 
+export function shouldShowSwimDistanceTrendTooltip(entry) {
+  return Number(entry?.workout_count ?? 0) > 0;
+}
+
+export function shouldUseSwimDistanceTrendCardTooltip(isMobile) {
+  return !isMobile;
+}
+
+export function SwimDistanceTrendTooltipCard({ entry, label, unitSystem = SWIM_UNIT_SYSTEMS.IMPERIAL }) {
+  const workoutCount = Number(entry?.workout_count ?? 0);
+  const distanceLabels = getSwimDistanceUnitLabels(unitSystem);
+  const totalDurationMinutes = Number(entry?.total_duration_minutes ?? 0);
+
+  return (
+    <article
+      className="min-w-[220px] rounded-2xl border p-4 shadow-sm"
+      style={{
+        borderColor: 'var(--border-soft)',
+        backgroundColor: 'var(--bg-panel)',
+      }}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--accent-600)' }}>
+            Workout Day
+          </p>
+          <p className="mt-1 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+            {formatSwimChartDateTick(label, false)}
+          </p>
+        </div>
+        <div className="shrink-0 text-right">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--text-muted)' }}>
+            Sessions
+          </p>
+          <p className="mt-1 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+            {formatInteger(workoutCount)}
+          </p>
+        </div>
+      </div>
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        <div className="rounded-xl px-3 py-2" style={{ backgroundColor: 'var(--accent-50)' }}>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: 'var(--text-muted)' }}>
+            Distance
+          </p>
+          <p className="mt-1 text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
+            {formatSwimDistance(entry?.total_yards || 0, unitSystem)} {distanceLabels.shortDistance}
+          </p>
+        </div>
+        <div className="rounded-xl border px-3 py-2" style={{ backgroundColor: '#f8fbff', borderColor: 'var(--border-soft)' }}>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: 'var(--text-muted)' }}>
+            Duration
+          </p>
+          <p className="mt-1 text-sm" style={{ color: 'var(--text-secondary)' }}>
+            {formatSwimTime(totalDurationMinutes)}
+          </p>
+        </div>
+      </div>
+    </article>
+  );
+}
+
 export function renderStrokeDonutLabel({ cx, cy, midAngle, outerRadius, percent, name, payload }) {
   if (!percent || percent < 0.05) {
     return null;
@@ -283,6 +344,19 @@ export function paginateRecords(records = [], page = 1, pageSize = WORKOUTS_PAGE
   };
 }
 
+export function buildSwimDurationByDate(records = []) {
+  return records.reduce((totals, record) => {
+    const dateKey = record?.start_date_time ? String(record.start_date_time).slice(0, 10) : null;
+    if (!dateKey) {
+      return totals;
+    }
+
+    const duration = Number(record?.duration ?? 0);
+    totals.set(dateKey, (totals.get(dateKey) || 0) + (Number.isNaN(duration) ? 0 : duration));
+    return totals;
+  }, new Map());
+}
+
 export default function SwimTracking() {
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedDays, setSelectedDays] = useState('365');
@@ -362,6 +436,7 @@ export default function SwimTracking() {
     if (!totalStrokeYards) return '0%';
     return `${Math.round((yards / totalStrokeYards) * 100)}%`;
   };
+  const durationByDate = buildSwimDurationByDate(records);
   const filledDailyData = (() => {
     if (!Array.isArray(dailyData) || dailyData.length === 0) return [];
 
@@ -383,6 +458,7 @@ export default function SwimTracking() {
         date: key,
         total_yards: existing?.total_yards ?? 0,
         workout_count: existing?.workout_count ?? 0,
+        total_duration_minutes: durationByDate.get(key) || 0,
       });
       cursor.setDate(cursor.getDate() + 1);
     }
@@ -399,6 +475,15 @@ export default function SwimTracking() {
   const dailyAxisInterval = isMobile
     ? Math.max(0, Math.floor(filledDailyData.length / 4))
     : Math.max(0, Math.floor(filledDailyData.length / 8));
+  const swimDistanceTrendTooltipContent = shouldUseSwimDistanceTrendCardTooltip(isMobile)
+    ? ({ items, label }) => (
+      <SwimDistanceTrendTooltipCard
+        entry={items[0]?.payload}
+        label={label}
+        unitSystem={unitSystem}
+      />
+    )
+    : null;
 
   return (
     <DashboardLayout
@@ -581,6 +666,8 @@ export default function SwimTracking() {
                   yTickFormatter={(value) => formatSwimDistance(value, unitSystem)}
                   valueFormatter={(value) => `${formatSwimDistance(value, unitSystem)} ${distanceLabels.mediumDistance}`}
                   labelFormatter={(date) => `Date: ${formatSwimChartDateTick(date, false)}`}
+                  tooltipVisibilityPredicate={shouldShowSwimDistanceTrendTooltip}
+                  customTooltipContent={swimDistanceTrendTooltipContent}
                 />
               </DashboardSection>
             )}
