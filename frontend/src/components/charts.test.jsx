@@ -1,5 +1,36 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
+import React from 'react';
+
+vi.mock('recharts', () => {
+  const createWrapper = (tag) => {
+    const Wrapper = ({ children }) => React.createElement(tag, null, children);
+    Wrapper.displayName = tag;
+    return Wrapper;
+  };
+
+  return {
+    ResponsiveContainer: createWrapper('responsive-container'),
+    BarChart: createWrapper('bar-chart'),
+    Bar: createWrapper('bar'),
+    CartesianGrid: createWrapper('cartesian-grid'),
+    Cell: createWrapper('cell'),
+    Legend: createWrapper('legend'),
+    Line: createWrapper('line'),
+    LineChart: createWrapper('line-chart'),
+    LabelList: createWrapper('label-list'),
+    Pie: createWrapper('pie'),
+    PieChart: createWrapper('pie-chart'),
+    XAxis: createWrapper('x-axis'),
+    YAxis: createWrapper('y-axis'),
+    Tooltip: ({ children, content, isAnimationActive = true, ...props }) => React.createElement(
+      'tooltip',
+      { 'data-animation-active': String(isAnimationActive), ...props },
+      children || content,
+    ),
+  };
+});
+
 import {
   BarChartPanel,
   ColumnChartPanel,
@@ -72,6 +103,31 @@ describe('chart wrappers', () => {
 
     expect(html).toContain('Date: 2026-04-01');
     expect(html).toContain('Distance: 1200 yards');
+  });
+
+  test('keep tooltip animation enabled by default for column charts', () => {
+    const html = renderToStaticMarkup(
+      <ColumnChartPanel
+        data={[{ date: '2026-04-01', total_yards: 1200 }]}
+        xKey="date"
+        bars={[{ dataKey: 'total_yards', name: 'Distance' }]}
+      />,
+    );
+
+    expect(html).toContain('data-animation-active="true"');
+  });
+
+  test('allow column charts to disable tooltip animation explicitly', () => {
+    const html = renderToStaticMarkup(
+      <ColumnChartPanel
+        data={[{ date: '2026-04-01', total_yards: 1200 }]}
+        xKey="date"
+        bars={[{ dataKey: 'total_yards', name: 'Distance' }]}
+        tooltipAnimationActive={false}
+      />,
+    );
+
+    expect(html).toContain('data-animation-active="false"');
   });
 
   test('allow a custom column tooltip renderer', () => {

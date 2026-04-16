@@ -189,6 +189,7 @@ export function ColumnChartPanel({
   showLegend = true,
   tooltipVisibilityPredicate = null,
   customTooltipContent = null,
+  tooltipAnimationActive = true,
 }) {
   if (!Array.isArray(data) || data.length === 0) {
     return <EmptyChartState emptyMessage={emptyMessage} />;
@@ -207,6 +208,7 @@ export function ColumnChartPanel({
           />
           <YAxis domain={yDomain} tick={{ fontSize: 12, fill: '#475569' }} tickFormatter={yTickFormatter} />
           <Tooltip
+            isAnimationActive={tooltipAnimationActive}
             content={(
               <ColumnChartTooltipContent
                 valueFormatter={valueFormatter}
