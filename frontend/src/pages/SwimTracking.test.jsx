@@ -15,6 +15,7 @@ import {
   formatSwimTime,
   getSwimDistanceUnitLabels,
   paginateRecords,
+  shouldAnimateSwimDistanceTrendTooltip,
   shouldShowSwimDistanceTrendTooltip,
   shouldUseSwimDistanceTrendCardTooltip,
   SWIM_UNIT_SYSTEMS,
@@ -153,6 +154,16 @@ describe('shouldUseSwimDistanceTrendCardTooltip', () => {
 
   test('keeps the simple tooltip on mobile', () => {
     expect(shouldUseSwimDistanceTrendCardTooltip(true)).toBe(false);
+  });
+});
+
+describe('shouldAnimateSwimDistanceTrendTooltip', () => {
+  test('disables tooltip animation on desktop', () => {
+    expect(shouldAnimateSwimDistanceTrendTooltip(false)).toBe(false);
+  });
+
+  test('keeps tooltip animation enabled on mobile', () => {
+    expect(shouldAnimateSwimDistanceTrendTooltip(true)).toBe(true);
   });
 });
 

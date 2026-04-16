@@ -123,6 +123,10 @@ export function shouldUseSwimDistanceTrendCardTooltip(isMobile) {
   return !isMobile;
 }
 
+export function shouldAnimateSwimDistanceTrendTooltip(isMobile) {
+  return Boolean(isMobile);
+}
+
 export function SwimDistanceTrendTooltipCard({ entry, label, unitSystem = SWIM_UNIT_SYSTEMS.IMPERIAL }) {
   const workoutCount = Number(entry?.workout_count ?? 0);
   const distanceLabels = getSwimDistanceUnitLabels(unitSystem);
@@ -668,6 +672,7 @@ export default function SwimTracking() {
                   labelFormatter={(date) => `Date: ${formatSwimChartDateTick(date, false)}`}
                   tooltipVisibilityPredicate={shouldShowSwimDistanceTrendTooltip}
                   customTooltipContent={swimDistanceTrendTooltipContent}
+                  tooltipAnimationActive={shouldAnimateSwimDistanceTrendTooltip(isMobile)}
                 />
               </DashboardSection>
             )}
