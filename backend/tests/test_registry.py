@@ -150,6 +150,16 @@ def test_get_openapi_tags_returns_general_and_dashboard_metadata():
     }
 
 
+def test_get_docs_dashboard_links_returns_dashboard_title_and_id():
+    """Test custom docs metadata exposes dashboard titles and ids."""
+    registry = DashboardRegistry()
+    registry.dashboards["test_dashboard"] = MockDashboard({})
+
+    links = registry.get_docs_dashboard_links()
+
+    assert links == [{"id": "test_dashboard", "title": "Test Dashboard"}]
+
+
 def test_disabled_dashboard_is_skipped(monkeypatch):
     """Test that disabled dashboards are not registered."""
     registry = DashboardRegistry()

@@ -4,11 +4,12 @@ Integration-style smoke tests for key API endpoints.
 from contextlib import asynccontextmanager
 import pytest
 import httpx
+from starlette.requests import Request
 
 try:
-    from app import app, registry
+    from app import app, registry, get_frontend_base_url
 except ImportError:
-    from backend.app import app, registry
+    from backend.app import app, registry, get_frontend_base_url
 
 
 @asynccontextmanager
@@ -56,6 +57,34 @@ async def test_openapi_groups_general_and_dashboard_tags():
         assert all(tags != ("default",) for tags in dashboard_operation_tags)
         assert all(len(tags) == 1 for tags in dashboard_operation_tags)
         assert ("Mortgage Rates",) in dashboard_operation_tags
+
+
+@pytest.mark.asyncio
+async def test_custom_docs_page_includes_navigation_links():
+    async with get_client() as client:
+        response = await client.get("/docs")
+        assert response.status_code == 200
+        html = response.text
+
+        assert "Back to Analytics Hub" in html
+        assert '"id": "mortgage_rates"' in html
+        assert '"Open dashboard"' in html
+
+
+def test_get_frontend_base_url_maps_local_backend_port_to_vite_port():
+    scope = {
+        "type": "http",
+        "method": "GET",
+        "path": "/docs",
+        "headers": [],
+        "server": ("localhost", 8000),
+        "scheme": "http",
+        "client": ("127.0.0.1", 12345),
+        "root_path": "",
+        "query_string": b"",
+    }
+
+    assert get_frontend_base_url(Request(scope)) == "http://localhost:3000"
 
 
 @pytest.mark.asyncio

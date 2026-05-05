@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     debug: bool = True
     log_level: str = "INFO"
     cors_allowed_origins: str = "*"
+    frontend_base_url: Optional[str] = None
     enable_mortgage_dashboard: bool = True
     enable_swim_dashboard: bool = True
     enable_rpi_dashboard: bool = True

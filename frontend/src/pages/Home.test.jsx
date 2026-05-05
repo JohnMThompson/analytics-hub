@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { DashboardCardContent, getDashboardAccentColor, HOME_PAGE_TITLE, sortDashboardsByPreferredOrder } from './Home';
+import { DashboardCardContent, getApiDocsUrl, getDashboardAccentColor, HomeHeaderActions, HOME_PAGE_TITLE, sortDashboardsByPreferredOrder } from './Home';
 import { setDocumentTitle } from '../utils/pageTitle';
 
 describe('sortDashboardsByPreferredOrder', () => {
@@ -91,5 +91,39 @@ describe('HOME_PAGE_TITLE', () => {
 
     expect(global.document.title).toBe('Analytics and Reporting Hub');
     delete global.document;
+  });
+});
+
+describe('getApiDocsUrl', () => {
+  test('maps local frontend dev traffic to the backend docs port', () => {
+    expect(
+      getApiDocsUrl({
+        origin: 'http://localhost:3000',
+        hostname: 'localhost',
+        protocol: 'http:',
+        port: '3000',
+      }),
+    ).toBe('http://localhost:8000/docs');
+  });
+
+  test('uses same-origin docs outside local dev', () => {
+    expect(
+      getApiDocsUrl({
+        origin: 'https://analytics.example.com',
+        hostname: 'analytics.example.com',
+        protocol: 'https:',
+        port: '',
+      }),
+    ).toBe('https://analytics.example.com/docs');
+  });
+});
+
+describe('Home header links', () => {
+  test('renders an API docs shortcut next to the GitHub shortcut', () => {
+    const html = renderToStaticMarkup(<HomeHeaderActions docsUrl="http://localhost:8000/docs" />);
+
+    expect(html).toContain('aria-label="Open API documentation"');
+    expect(html).toContain('href="http://localhost:8000/docs"');
+    expect(html).toContain('aria-label="Open project GitHub repository"');
   });
 });
