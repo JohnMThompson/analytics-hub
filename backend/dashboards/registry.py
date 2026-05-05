@@ -174,6 +174,16 @@ class DashboardRegistry:
             for dashboard in self.dashboards.values()
         ]
 
+    def get_docs_dashboard_links(self) -> List[Dict[str, str]]:
+        """Return dashboard link metadata for custom API docs navigation."""
+        return [
+            {
+                "id": dashboard.metadata.id,
+                "title": dashboard.metadata.title,
+            }
+            for dashboard in self.dashboards.values()
+        ]
+
 
 # Global registry instance
 _registry: DashboardRegistry = None

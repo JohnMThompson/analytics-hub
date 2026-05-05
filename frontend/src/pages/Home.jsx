@@ -28,6 +28,23 @@ const DASHBOARD_ACCENT_COLORS = {
 
 export const HOME_PAGE_TITLE = 'Analytics and Reporting Hub';
 
+export function getApiDocsUrl(locationLike = globalThis.location) {
+  const origin = locationLike?.origin;
+  const hostname = locationLike?.hostname;
+  const protocol = locationLike?.protocol || 'http:';
+  const port = locationLike?.port;
+
+  if (!origin && !hostname) {
+    return '/docs';
+  }
+
+  if ((hostname === 'localhost' || hostname === '127.0.0.1') && port === '3000') {
+    return `${protocol}//${hostname}:8000/docs`;
+  }
+
+  return `${origin || `${protocol}//${hostname}`}/docs`;
+}
+
 export function sortDashboardsByPreferredOrder(dashboards) {
   const orderMap = new Map(DASHBOARD_DISPLAY_ORDER.map((id, index) => [id, index]));
   return [...dashboards].sort((a, b) => {
@@ -63,10 +80,48 @@ export function DashboardCardContent({ dashboard, priority = false }) {
   );
 }
 
+export function HomeHeaderActions({ docsUrl }) {
+  return (
+    <div className="flex items-center gap-3">
+      <a
+        href={docsUrl}
+        target="_blank"
+        rel="noreferrer"
+        aria-label="Open API documentation"
+        className="dashboard-link focus-ring inline-flex items-center justify-center rounded-full border p-2"
+        style={{ borderColor: 'var(--border-soft)' }}
+      >
+        <span className="flex h-5 w-5 items-center justify-center text-[10px] font-bold leading-none" aria-hidden="true">
+          {'</>'}
+        </span>
+      </a>
+      <a
+        href="https://github.com/JohnMThompson/analytics-hub"
+        target="_blank"
+        rel="noreferrer"
+        aria-label="Open project GitHub repository"
+        className="dashboard-link focus-ring inline-flex items-center justify-center rounded-full border p-2"
+        style={{ borderColor: 'var(--border-soft)' }}
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="currentColor"
+          className="h-5 w-5"
+          aria-hidden="true"
+        >
+          <path d="M12 1.5A10.5 10.5 0 0 0 8.68 22c.52.09.7-.22.7-.5v-1.92c-2.86.62-3.47-1.2-3.47-1.2-.46-1.18-1.13-1.5-1.13-1.5-.92-.63.08-.62.08-.62 1.02.07 1.56 1.05 1.56 1.05.9 1.55 2.37 1.1 2.95.84.09-.66.35-1.1.64-1.35-2.28-.26-4.67-1.14-4.67-5.06 0-1.12.4-2.03 1.05-2.75-.1-.26-.46-1.32.1-2.74 0 0 .85-.27 2.8 1.05a9.6 9.6 0 0 1 5.1 0c1.95-1.32 2.8-1.05 2.8-1.05.56 1.42.2 2.48.1 2.74.66.72 1.05 1.63 1.05 2.75 0 3.93-2.4 4.8-4.69 5.05.36.31.68.93.68 1.88v2.79c0 .28.18.59.7.5A10.5 10.5 0 0 0 12 1.5Z" />
+        </svg>
+      </a>
+    </div>
+  );
+}
+
 export default function Home() {
   const [dashboards, setDashboards] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const docsUrl = getApiDocsUrl();
 
   useEffect(() => {
     fetchDashboards();
@@ -128,24 +183,7 @@ export default function Home() {
             <h1 className="dashboard-title">Analytics and Reporting Hub</h1>
             <p className="dashboard-subtitle">Choose a dashboard to view</p>
           </div>
-          <a
-            href="https://github.com/JohnMThompson/analytics-hub"
-            target="_blank"
-            rel="noreferrer"
-            aria-label="Open project GitHub repository"
-            className="dashboard-link focus-ring inline-flex items-center justify-center rounded-full border p-2"
-            style={{ borderColor: 'var(--border-soft)' }}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              className="h-5 w-5"
-              aria-hidden="true"
-            >
-              <path d="M12 1.5A10.5 10.5 0 0 0 8.68 22c.52.09.7-.22.7-.5v-1.92c-2.86.62-3.47-1.2-3.47-1.2-.46-1.18-1.13-1.5-1.13-1.5-.92-.63.08-.62.08-.62 1.02.07 1.56 1.05 1.56 1.05.9 1.55 2.37 1.1 2.95.84.09-.66.35-1.1.64-1.35-2.28-.26-4.67-1.14-4.67-5.06 0-1.12.4-2.03 1.05-2.75-.1-.26-.46-1.32.1-2.74 0 0 .85-.27 2.8 1.05a9.6 9.6 0 0 1 5.1 0c1.95-1.32 2.8-1.05 2.8-1.05.56 1.42.2 2.48.1 2.74.66.72 1.05 1.63 1.05 2.75 0 3.93-2.4 4.8-4.69 5.05.36.31.68.93.68 1.88v2.79c0 .28.18.59.7.5A10.5 10.5 0 0 0 12 1.5Z" />
-            </svg>
-          </a>
+          <HomeHeaderActions docsUrl={docsUrl} />
         </div>
       </header>
 
