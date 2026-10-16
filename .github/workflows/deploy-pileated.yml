@@ -3,7 +3,7 @@ name: Deploy AI Analytics to Pileated
 on:
   push:
     branches:
-      - migration/pileated
+      - main
   workflow_dispatch:
 
 permissions: {}
@@ -15,7 +15,7 @@ concurrency:
 jobs:
   deploy:
     name: Deploy on Pileated
-    if: github.repository == 'JohnMThompson/analytics-hub' && github.ref == 'refs/heads/migration/pileated'
+    if: false
     runs-on: [self-hosted, Linux, X64, pileated-deploy]
     environment: pileated-production
     timeout-minutes: 20
