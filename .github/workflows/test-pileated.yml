@@ -1,6 +1,9 @@
 name: Test Pileated Runner
 
 on:
+  push:
+    branches:
+      - migration/pileated
   workflow_dispatch:
 
 permissions: {}
