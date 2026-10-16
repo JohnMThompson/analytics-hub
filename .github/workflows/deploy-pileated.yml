@@ -1,0 +1,73 @@
+name: Deploy AI Analytics to Pileated
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: ai-analytics-pileated-deployment
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy on Pileated
+    if: false
+    runs-on: [self-hosted, Linux, X64, pileated-deploy]
+    environment: pileated-production
+    timeout-minutes: 20
+
+    steps:
+      - name: Deploy AI Analytics
+        run: sudo -n /usr/local/lib/homelab-deploy/ai-analytics
+
+      - name: Verify application health
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          BASE_URL="https://analytics.johnthompson.io"
+
+          echo "Waiting for AI Analytics to become healthy..."
+
+          for attempt in {1..30}; do
+            if curl --fail --silent --show-error \
+              --max-time 10 \
+              "$BASE_URL/api/health" >/dev/null; then
+              echo "Application health check passed."
+              break
+            fi
+
+            if [[ "$attempt" -eq 30 ]]; then
+              echo "ERROR: Application health check failed."
+              exit 1
+            fi
+
+            sleep 5
+          done
+
+          echo "Checking dashboard readiness..."
+
+          curl --fail --silent --show-error \
+            --max-time 15 \
+            "$BASE_URL/api/ready" \
+            | python3 -c '
+          import json
+          import sys
+
+          data = json.load(sys.stdin)
+          checks = data.get("checks", {})
+
+          if data.get("status") != "ready":
+              sys.exit("ERROR: Application is not ready")
+
+          if len(checks) != 5 or not all(
+              item.get("ready") is True for item in checks.values()
+          ):
+              sys.exit("ERROR: One or more dashboards are not ready")
+
+          print("Application ready. All 5 dashboard checks passed.")
+          '
