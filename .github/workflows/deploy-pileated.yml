@@ -1,0 +1,25 @@
+name: Deploy AI Analytics to Pileated
+
+on:
+  push:
+    branches:
+      - migration/pileated
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: ai-analytics-pileated-deployment
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy on Pileated
+    if: github.event_name == 'workflow_dispatch' && github.repository == 'JohnMThompson/analytics-hub' && github.ref == 'refs/heads/migration/pileated'
+    runs-on: [self-hosted, Linux, X64, pileated-deploy]
+    environment: pileated-production
+    timeout-minutes: 20
+
+    steps:
+      - name: Deploy AI Analytics
+        run: sudo -n /usr/local/lib/homelab-deploy/ai-analytics
