@@ -1,0 +1,22 @@
+name: Test Pileated Runner
+
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  test:
+    name: Verify Pileated Connection
+    if: github.ref == 'refs/heads/migration/pileated'
+    runs-on: [self-hosted, Linux, X64, pileated-deploy]
+    environment: pileated-production
+
+    steps:
+      - name: Verify runner
+        run: |
+          echo "GitHub Actions successfully connected to Pileated"
+          hostname
+          whoami
+          id
+          echo "Connection test complete"
