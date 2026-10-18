@@ -15,7 +15,7 @@ services:
       web:
         aliases:
           - analytics-backend
-
+      mysql:
   frontend:
     ports: !reset []
     build:
@@ -33,3 +33,6 @@ services:
 networks:
   web:
     external: true
+  mysql:
+    external: true
+    name: mysql
