@@ -2,6 +2,7 @@ version: '3.8'
 
 services:
   backend:
+    restart: unless-stopped
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -45,6 +46,7 @@ services:
       - ai-analytics
 
   frontend:
+    restart: unless-stopped
     build:
       context: ./frontend
       dockerfile: Dockerfile
