@@ -137,6 +137,9 @@ function getSeriesColor(seriesColor, idx) {
 export function LineChartPanel({
   data = [],
   xKey,
+  xAxisType = 'category',
+  xDomain = ['auto', 'auto'],
+  xTickFormatter = undefined,
   lines = [],
   height = 360,
   yDomain = ['auto', 'auto'],
@@ -153,7 +156,13 @@ export function LineChartPanel({
       <ResponsiveContainer width="100%" height={height}>
         <LineChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="#dbe5f0" />
-          <XAxis dataKey={xKey} tick={{ fontSize: 12, fill: '#475569' }} />
+          <XAxis
+            dataKey={xKey}
+            type={xAxisType}
+            domain={xAxisType === 'number' ? xDomain : undefined}
+            tick={{ fontSize: 12, fill: '#475569' }}
+            tickFormatter={xTickFormatter}
+          />
           <YAxis domain={yDomain} tick={{ fontSize: 12, fill: '#475569' }} />
           <Tooltip contentStyle={tooltipStyle} formatter={valueFormatter} labelFormatter={labelFormatter} />
           <Legend />
