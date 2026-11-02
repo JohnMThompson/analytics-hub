@@ -71,6 +71,17 @@ export default function HalloweenTracking() {
       minute_of_day: Number.isFinite(hours) && Number.isFinite(minutes) ? hours * 60 + minutes : null,
     };
   });
+  const cumulativeMinutes = cumulativeChartPoints
+    .map((point) => point.minute_of_day)
+    .filter(Number.isFinite);
+  const cumulativeStart = cumulativeMinutes.length ? Math.ceil(Math.min(...cumulativeMinutes) / 5) * 5 : 0;
+  const cumulativeEnd = cumulativeMinutes.length ? Math.floor(Math.max(...cumulativeMinutes) / 5) * 5 : -1;
+  const cumulativeTicks = [];
+  for (let minute = cumulativeStart; minute <= cumulativeEnd; minute += 5) {
+    cumulativeTicks.push(minute);
+  }
+  const formatMinuteOfDay = (minute) =>
+    `${String(Math.floor(minute / 60)).padStart(2, '0')}:${String(minute % 60).padStart(2, '0')}`;
 
   const cumulativeLines = cumulativeByMinute.years.map((year, idx) => ({
     dataKey: String(year),
@@ -135,12 +146,13 @@ export default function HalloweenTracking() {
           xKey="minute_of_day"
           xAxisType="number"
           xDomain={['dataMin', 'dataMax']}
-          xTickFormatter={(minute) => `${String(Math.floor(minute / 60)).padStart(2, '0')}:${String(minute % 60).padStart(2, '0')}`}
+          xTicks={cumulativeTicks}
+          xTickFormatter={formatMinuteOfDay}
           lines={cumulativeLines}
           yDomain={[0, 'auto']}
           height={420}
           valueFormatter={(value) => formatInteger(value)}
-          labelFormatter={(label) => `Time: ${label}`}
+          labelFormatter={(minute) => `Time: ${formatMinuteOfDay(Number(minute))}`}
           emptyMessage="No minute-level cumulative data available."
         />
       </DashboardSection>
