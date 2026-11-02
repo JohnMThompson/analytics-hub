@@ -139,6 +139,7 @@ export function LineChartPanel({
   xKey,
   xAxisType = 'category',
   xDomain = ['auto', 'auto'],
+  xTicks = undefined,
   xTickFormatter = undefined,
   lines = [],
   height = 360,
@@ -160,6 +161,7 @@ export function LineChartPanel({
             dataKey={xKey}
             type={xAxisType}
             domain={xAxisType === 'number' ? xDomain : undefined}
+            ticks={xTicks}
             tick={{ fontSize: 12, fill: '#475569' }}
             tickFormatter={xTickFormatter}
           />
