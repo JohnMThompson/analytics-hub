@@ -63,7 +63,14 @@ export default function HalloweenTracking() {
     ...entry,
     year_label: String(entry.year || ''),
   }));
-  const yearlyCountBars = [...chartData].sort((a, b) => (b.count || 0) - (a.count || 0));
+  const yearlyCountBars = [...chartData].sort((a, b) => Number(b.year) - Number(a.year));
+  const cumulativeChartPoints = cumulativeByMinute.points.map((point) => {
+    const [hours, minutes] = String(point.minute_label || '').split(':').map(Number);
+    return {
+      ...point,
+      minute_of_day: Number.isFinite(hours) && Number.isFinite(minutes) ? hours * 60 + minutes : null,
+    };
+  });
 
   const cumulativeLines = cumulativeByMinute.years.map((year, idx) => ({
     dataKey: String(year),
@@ -104,7 +111,7 @@ export default function HalloweenTracking() {
         </DashboardSection>
       )}
 
-      <DashboardSection title="Trick-or-treater by year">
+      <DashboardSection title="Trick-or-treaters by year">
         <BarChartPanel
           data={yearlyCountBars}
           xKey="year_label"
@@ -124,8 +131,11 @@ export default function HalloweenTracking() {
 
       <DashboardSection title="Cumulative Trick-or-Treaters by Minute">
         <LineChartPanel
-          data={cumulativeByMinute.points}
-          xKey="minute_label"
+          data={cumulativeChartPoints}
+          xKey="minute_of_day"
+          xAxisType="number"
+          xDomain={['dataMin', 'dataMax']}
+          xTickFormatter={(minute) => `${String(Math.floor(minute / 60)).padStart(2, '0')}:${String(minute % 60).padStart(2, '0')}`}
           lines={cumulativeLines}
           yDomain={[0, 'auto']}
           height={420}
